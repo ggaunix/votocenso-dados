@@ -143,6 +143,8 @@ select, input[type=search] { background: var(--folha); border: 1px solid var(--l
 .perfil .val b { display: block; font-weight: 600; }
 .perfil .val span { font-size: 11.5px; color: var(--tinta-3); }
 .perfil .val span.mais { color: var(--carimbo); } .perfil .val span.menos { color: var(--frio); }
+.perfil .soma { padding: 6px 0 2px; font-size: 12px; color: var(--tinta-3); text-align: right; }
+.perfil .soma b { color: var(--tinta); font-family: var(--f-dado); font-weight: 600; }
 .contas { position: relative; margin-top: 6px; font-size: 13.5px; color: var(--tinta-2); max-width: 75ch; }
 .contas b { color: var(--tinta); font-family: var(--f-dado); font-weight: 600; }
 .barra svg { display: block; width: 100%; height: 14px; }
@@ -154,6 +156,10 @@ select, input[type=search] { background: var(--folha); border: 1px solid var(--l
 
 /* tabela */
 .tab-topo { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.tab-topo h3 { margin: 0; }
+.ordena { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+table.dados th::after { content: " ⇅"; color: var(--linha-2); }
+table.dados th[aria-sort]::after { content: ""; }
 .rolagem { overflow-x: auto; }
 table.dados { border-collapse: collapse; width: 100%; font-size: 13px; }
 table.dados th { position: sticky; top: 0; background: var(--folha); text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--tinta-3); padding: 6px 8px; border-bottom: 1px solid var(--linha-2); cursor: pointer; white-space: nowrap; user-select: none; }
@@ -236,8 +242,14 @@ table.dados td.m { white-space: nowrap; }
   </div>
   <div class="numeros" id="c-numeros"></div>
   <div class="cartao">
-    <h3 id="top-titulo">Os 10 locais com mais votos</h3>
-    <p class="expl">Clique num local para vê-lo no mapa.</p>
+    <div class="tab-topo">
+      <h3 id="top-titulo">Os 10 locais mais fortes</h3>
+      <div class="abas" id="abas-top" role="group" aria-label="Ordenar locais por">
+        <button class="aba" data-ord="votos" aria-pressed="true">Mais votos</button>
+        <button class="aba" data-ord="pct" aria-pressed="false">Maior % dos válidos</button>
+      </div>
+    </div>
+    <p class="expl" id="top-expl">Clique num local para vê-lo no mapa.</p>
     <ol class="top" id="c-top"></ol>
   </div>
   <div class="controles">
@@ -274,8 +286,11 @@ table.dados td.m { white-space: nowrap; }
         <button class="aba" data-tab="locais" aria-pressed="false">Por local</button>
         <button class="aba" data-tab="bairros" aria-pressed="false">Por bairro</button>
       </div>
-      <button class="botao" id="exportar" hidden>Baixar CSV</button>
+      <div class="ordena"><label for="sel-ord" class="rotulo">Ordenar por</label>
+        <select id="sel-ord"><option value="votos">Mais votos</option><option value="pct">Maior % dos válidos</option><option value="pct_asc">Menor % dos válidos</option><option value="val">Mais votos válidos (tamanho)</option></select>
+        <button class="botao" id="exportar" hidden>Baixar CSV</button></div>
     </div>
+    <p class="nota" id="nota-ord"></p>
     <div class="rolagem"><table class="dados" id="tabela"></table></div>
     <div class="paginas"><span id="pag-info"></span><button class="botao" id="pag-ant">Anterior</button><button class="botao" id="pag-prox">Próxima</button></div>
   </div>
@@ -294,7 +309,7 @@ const COLUNAS_TAB = ["renda_media_responsavel", "pct_alfabetizados_15_mais", "pc
 const PERFIL_FORA = new Set(["pop", "domicilios"]);
 
 const E = { recortes: [], recorte: null, meta: null, L: null, lim: null, cargo: null, cand: null, dadosCand: null,
-  mun: -1, nivel: "raio", tab: "secoes", ord: { col: "votos", dir: -1 }, pag: 0, x: "renda_media_responsavel", busca: "" };
+  mun: -1, nivel: "raio", tab: "secoes", ord: { col: "votos", dir: -1 }, ordTop: "votos", pag: 0, x: "renda_media_responsavel", busca: "" };
 let mapa = null, camadaPontos = null, camadaLim = null, downloads = null;
 const fatorZoom = () => mapa ? Math.min(1.3, Math.max(0.3, (mapa.getZoom() - 5) / 6)) : 1;
 
@@ -452,13 +467,15 @@ function montarFicha(c) {
   $("#sel-x").addEventListener("change", e => { E.x = e.target.value; desenharDispersao(); });
   $("#abas-tab").addEventListener("click", e => {
     const b = e.target.closest("[data-tab]"); if (!b) return;
-    E.tab = b.dataset.tab; E.pag = 0; E.ord = { col: "votos", dir: -1 };
+    E.tab = b.dataset.tab; E.pag = 0;
     document.querySelectorAll("#abas-tab .aba").forEach(x => x.setAttribute("aria-pressed", x === b));
     desenharTabela();
   });
+  $("#sel-ord").addEventListener("change", e => { const o = ORDENS[e.target.value]; if (o) { E.ord = { col: o[0], dir: o[1] }; E.pag = 0; desenharTabela(); } });
   $("#pag-ant").addEventListener("click", () => { E.pag--; desenharTabela(); });
   $("#pag-prox").addEventListener("click", () => { E.pag++; desenharTabela(); });
   $("#exportar").addEventListener("click", exportarCSV);
+  $("#abas-top").addEventListener("click", e => { const b = e.target.closest("[data-ord]"); if (b) { E.ordTop = b.dataset.ord; desenharTop(); } });
   $("#c-top").addEventListener("click", e => { const b = e.target.closest("button[data-li]"); if (b && !b.disabled) irParaLocal(+b.dataset.li); });
 
   criarMapa();
@@ -527,17 +544,27 @@ function desenharNumeros() {
   desenharTop();
 }
 
+const MIN_VALIDOS_PCT = 200;  // locais muito pequenos distorcem o ranking por %
+
 function desenharTop() {
-  const v = E.votosLocal, val = E.valLocal, L0 = E.L, idx = [];
-  for (let i = 0; i < L0.n; i++) if (filtro(i) && v[i] > 0) idx.push(i);
-  idx.sort((a, b) => v[b] - v[a]);
-  $("#top-titulo").textContent = `Os 10 locais com mais votos${E.mun === -1 ? "" : " em " + E.meta.municipios[E.mun]}`;
+  const v = E.votosLocal, val = E.valLocal, L0 = E.L, idx = [], porPct = E.ordTop === "pct";
+  for (let i = 0; i < L0.n; i++) if (filtro(i) && v[i] > 0 && (!porPct || val[i] >= MIN_VALIDOS_PCT)) idx.push(i);
+  if (porPct) idx.sort((a, b) => v[b] / val[b] - v[a] / val[a] || v[b] - v[a]);
+  else idx.sort((a, b) => v[b] - v[a]);
+  document.querySelectorAll("#abas-top .aba").forEach(b => b.setAttribute("aria-pressed", b.dataset.ord === E.ordTop));
+  const onde = E.mun === -1 ? "" : " em " + E.meta.municipios[E.mun];
+  $("#top-titulo").textContent = porPct ? `Os 10 locais onde ele foi mais forte${onde}` : `Os 10 locais com mais votos${onde}`;
+  $("#top-expl").textContent = porPct
+    ? `Ordenados pela fatia dele nos votos válidos do local (só locais com pelo menos ${MIN_VALIDOS_PCT} votos válidos, para não destacar locais minúsculos). Clique num local para vê-lo no mapa.`
+    : "Ordenados pelo número de votos dele. Clique num local para vê-lo no mapa.";
   $("#c-top").innerHTML = idx.slice(0, 10).map((i, k) => {
     const sem = L0.lat[i] == null;
     return `<li><button type="button" data-li="${i}" ${sem ? "disabled title=\"O TSE não publicou a coordenada deste local\"" : ""}>
       <span class="pos">${k + 1}</span>
       <span class="nm">${esc(L0.nome[i])}</span>
-      <span class="vt">${fmt.format(v[i])}<small>${val[i] ? fmt1.format(100 * v[i] / val[i]) + "% dos válidos" : ""}</small></span>
+      <span class="vt">${porPct
+        ? `${fmt1.format(100 * v[i] / val[i])}%<small>${fmt.format(v[i])} de ${fmt.format(val[i])} válidos</small>`
+        : `${fmt.format(v[i])}<small>${val[i] ? fmt1.format(100 * v[i] / val[i]) + "% dos válidos" : ""}</small>`}</span>
       <span class="onde">${esc(ondeLocal(i))}${sem ? " · sem coordenada" : ""}</span>
     </button></li>`;
   }).join("");
@@ -632,12 +659,23 @@ function mediaPond(x, w, mascara) {
   return p ? s / p : null;
 }
 
+// comp: categorias que somam 100% (célula suprimida pelo IBGE, 1 ou 2 pessoas, conta como 0)
 const GRUPOS_PERFIL = [
   ["Renda e escolaridade", ["renda_media_responsavel", "pct_alfabetizados_15_mais"]],
-  ["Cor ou raça", ["pct_branca", "pct_preta_parda", "pct_preta", "pct_parda", "pct_amarela", "pct_indigena"]],
-  ["Idade", ["pct_0_14", "pct_15_24", "pct_25_39", "pct_40_59", "pct_60_mais"]],
+  ["Cor ou raça", ["pct_branca", "pct_parda", "pct_preta", "pct_amarela", "pct_indigena"], { comp: true, subtotal: ["Pretos e pardos", ["pct_preta", "pct_parda"]] }],
+  ["Idade", ["pct_0_14", "pct_15_24", "pct_25_39", "pct_40_59", "pct_60_mais"], { comp: true }],
   ["Território", ["pct_pop_favela", "pct_pop_rural", "densidade_hab_km2"]],
 ];
+
+// arredonda para 1 casa mantendo a soma em 100,0 (maiores restos)
+function fecha100(vals) {
+  const tot = vals.reduce((a, b) => a + b, 0);
+  if (!tot) return vals;
+  const esc10 = vals.map(x => 1000 * x / tot), base = esc10.map(Math.floor);
+  let falta = 1000 - base.reduce((a, b) => a + b, 0);
+  esc10.map((x, i) => [x - base[i], i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (falta > 0) { base[i]++; falta--; } });
+  return base.map(x => x / 10);
+}
 
 function desenharPerfil() {
   const ind = E.L.ind[E.nivel] || {}, v = E.votosLocal, val = E.valLocal;
@@ -645,32 +683,61 @@ function desenharPerfil() {
   const onde = E.mun === -1 ? `do estado (${E.meta.uf})` : `de ${E.meta.municipios[E.mun]}`;
   $("#perfil-expl").textContent = `Para cada indicador do censo (nível "${E.meta.niveis[E.nivel]}"), a média dos locais de votação ponderada pelos votos dele, comparada com a média ponderada pelos votos válidos do cargo ${onde}.`;
   let html = "";
-  for (const [grupo, chaves] of GRUPOS_PERFIL) {
-    const linhas = chaves.filter(k => ind[k]).map(k => {
+  for (const [grupo, chaves0, opt = {}] of GRUPOS_PERFIL) {
+    const chaves = chaves0.filter(k => ind[k]);
+    if (!chaves.length) continue;
+    // série de valores por indicador; em grupos de composição, nulo vira 0 onde o local tem alguma categoria
+    const serie = {};
+    let mascara = usa;
+    if (opt.comp) {
+      const tem = new Uint8Array(E.L.n);
+      for (let i = 0; i < E.L.n; i++) tem[i] = chaves.some(k => ind[k][i] != null) ? 1 : 0;
+      mascara = i => usa(i) && tem[i] === 1;
+      for (const k of chaves) serie[k] = ind[k].map(x => x == null ? 0 : x);
+    } else for (const k of chaves) serie[k] = ind[k];
+    const medias = chaves.map(k => [mediaPond(serie[k], v, mascara), mediaPond(serie[k], val, mascara)]);
+    if (medias.some(([a, b]) => a == null || b == null)) continue;
+    let mostra = medias.map(m => m.slice());
+    if (opt.comp) {
+      const c = fecha100(medias.map(m => m[0])), e = fecha100(medias.map(m => m[1]));
+      mostra = c.map((x, j) => [x, e[j]]);
+    }
+    const linhas = chaves.map((k, j) => {
       const meta = E.meta.indicadores.find(i => i.chave === k) || { rotulo: k, unidade: "" };
       const xs = [];
-      for (let i = 0; i < E.L.n; i++) if (usa(i) && val[i] > 0 && ind[k][i] != null) xs.push(ind[k][i]);
+      for (let i = 0; i < E.L.n; i++) if (mascara(i) && val[i] > 0 && serie[k][i] != null) xs.push(serie[k][i]);
       xs.sort((a, b) => a - b);
       const q = f => xs[Math.floor(f * (xs.length - 1))];
       let lo = q(0.1), hi = q(0.9);
-      if (!(hi - lo > 1e-6)) { lo = q(0); hi = q(0.99); }  // indicador quase sempre zero (rural, indígenas)
-      const cand = mediaPond(ind[k], v, usa), ele = mediaPond(ind[k], val, usa);
-      if (cand == null || ele == null || lo == null) return "";
+      if (!(hi - lo > 1e-6)) { lo = q(0); hi = q(0.99); }
+      const [cand, ele] = medias[j], [candM, eleM] = mostra[j];
       const pos = x => Math.min(100, Math.max(0, hi > lo ? 100 * (x - lo) / (hi - lo) : 50));
       const pct = meta.unidade === "%";
-      const d = pct ? cand - ele : (ele ? 100 * (cand - ele) / ele : 0);
+      const d = pct ? candM - eleM : (ele ? 100 * (cand - ele) / ele : 0);
       const pequeno = pct ? Math.abs(d) < 0.5 : Math.abs(d) < 2;
       const txt = pequeno ? "≈ eleitorado" : `${d > 0 ? "+" : "−"}${fmt1.format(Math.abs(d))}${pct ? " p.p." : "%"}`;
-      const dica = `${meta.rotulo}: média dos votos dele ${valor(k, cand)}; do eleitorado ${valor(k, ele)}. Nos locais ${onde}, 10% ficam abaixo de ${valor(k, lo)} e 10% acima de ${valor(k, hi)}.`;
+      const vC = pct ? fmt1.format(candM) + "%" : valor(k, cand), vE = pct ? fmt1.format(eleM) + "%" : valor(k, ele);
+      const dica = `${meta.rotulo}: média dos votos dele ${vC}; do eleitorado ${vE}. Nos locais ${onde}, 10% ficam abaixo de ${valor(k, lo)} e 10% acima de ${valor(k, hi)}.`;
       return `<div class="ln" title="${esc(dica)}">
         <span class="rotulo-ind">${esc(meta.rotulo)}</span>
         <span class="regua" aria-hidden="true"><span class="eixo"></span>
           <span class="ele" style="left:${pos(ele)}%"></span><span class="cand" style="left:${pos(cand)}%"></span>
           <span class="ext a">${esc(curto(k, lo))}</span><span class="ext b">${esc(curto(k, hi))}</span></span>
-        <span class="val"><b>${valor(k, cand)}</b><span class="${pequeno ? "" : d > 0 ? "mais" : "menos"}">${txt}</span></span>
+        <span class="val"><b>${vC}</b><span class="${pequeno ? "" : d > 0 ? "mais" : "menos"}">${txt}</span></span>
       </div>`;
     }).join("");
-    if (linhas) html += `<h4>${esc(grupo)}</h4>` + linhas;
+    let rodape = "";
+    if (opt.comp) {
+      const somaC = mostra.reduce((a, m) => a + m[0], 0), somaE = mostra.reduce((a, m) => a + m[1], 0);
+      let sub = "";
+      if (opt.subtotal) {
+        const [rot, ks] = opt.subtotal, js = ks.map(k => chaves.indexOf(k)).filter(j => j >= 0);
+        const c = js.reduce((a, j) => a + mostra[j][0], 0), e = js.reduce((a, j) => a + mostra[j][1], 0);
+        sub = `${esc(rot)}: <b>${fmt1.format(c)}%</b> (eleitorado ${fmt1.format(e)}%) · `;
+      }
+      rodape = `<div class="soma">${sub}categorias somam ${fmt1.format(somaC)}% (eleitorado ${fmt1.format(somaE)}%)</div>`;
+    }
+    html += `<h4>${esc(grupo)}</h4>` + linhas + rodape;
   }
   $("#perfil").innerHTML = html || `<div class="vazio">Sem dados do censo para este recorte.</div>`;
 }
@@ -732,7 +799,7 @@ function linhasTabela() {
     for (let k = 0; k < d.s_li.length; k++) {
       const i = d.s_li[k]; if (!filtro(i)) continue;
       out.push({ mun: nome[L0.mun[i]], zona: L0.zona[i], secao: d.s_sec[k], local: L0.nome[i], bairro: L0.bairro_ibge[i] || L0.bairro[i],
-        votos: d.s_v[k], pct: d.s_val[k] ? 100 * d.s_v[k] / d.s_val[k] : null, _i: i, ...cens(i) });
+        votos: d.s_v[k], val: d.s_val[k], pct: d.s_val[k] ? 100 * d.s_v[k] / d.s_val[k] : null, _i: i, ...cens(i) });
     }
     return out;
   }
@@ -740,7 +807,7 @@ function linhasTabela() {
     const out = [];
     for (let i = 0; i < L0.n; i++) if (filtro(i) && v[i] > 0)
       out.push({ mun: nome[L0.mun[i]], zona: L0.zona[i], local: L0.nome[i], end: L0.end[i], bairro: L0.bairro_ibge[i] || L0.bairro[i],
-        votos: v[i], pct: val[i] ? 100 * v[i] / val[i] : null, eleit: L0.eleit[i], _i: i, ...cens(i) });
+        votos: v[i], val: val[i], pct: val[i] ? 100 * v[i] / val[i] : null, eleit: L0.eleit[i], _i: i, ...cens(i) });
     return out;
   }
   // bairros: agrega por município + bairro do IBGE (ou do TSE quando o local não tem coordenada)
@@ -760,17 +827,38 @@ function colunasTabela() {
   const cens = COLUNAS_TAB.map(k => ({ k, t: rotuloInd(k), n: true, f: x => valor(k, x) }));
   const nu = x => fmt.format(x), pc = x => x == null ? "–" : fmt1.format(x) + "%";
   if (E.tab === "secoes") return [{ k: "mun", t: "Município", c: "m" }, { k: "zona", t: "Zona", n: true, f: x => pad(x, 4) }, { k: "secao", t: "Seção", n: true, f: x => pad(x, 4) },
-    { k: "local", t: "Local de votação", c: "t" }, { k: "bairro", t: "Bairro" }, { k: "votos", t: "Votos", n: true, f: nu }, { k: "pct", t: "% válidos", n: true, f: pc }, ...cens];
+    { k: "local", t: "Local de votação", c: "t" }, { k: "bairro", t: "Bairro" }, { k: "votos", t: "Votos", n: true, f: nu }, { k: "val", t: "Válidos", n: true, f: nu }, { k: "pct", t: "% válidos", n: true, f: pc }, ...cens];
   if (E.tab === "locais") return [{ k: "mun", t: "Município", c: "m" }, { k: "zona", t: "Zona", n: true, f: x => pad(x, 4) }, { k: "local", t: "Local de votação", c: "t" },
-    { k: "end", t: "Endereço", c: "t" }, { k: "bairro", t: "Bairro" }, { k: "votos", t: "Votos", n: true, f: nu }, { k: "pct", t: "% válidos", n: true, f: pc }, { k: "eleit", t: "Eleitores", n: true, f: nu }, ...cens];
+    { k: "end", t: "Endereço", c: "t" }, { k: "bairro", t: "Bairro" }, { k: "votos", t: "Votos", n: true, f: nu }, { k: "val", t: "Válidos", n: true, f: nu }, { k: "pct", t: "% válidos", n: true, f: pc }, { k: "eleit", t: "Eleitores", n: true, f: nu }, ...cens];
   return [{ k: "mun", t: "Município", c: "m" }, { k: "bairro", t: "Bairro", c: "t" }, { k: "locais", t: "Locais com voto", n: true, f: nu }, { k: "votos", t: "Votos", n: true, f: nu },
-    { k: "pct", t: "% válidos", n: true, f: pc }, ...COLUNAS_TAB.map(k => ({ k, t: rotuloInd(k), n: true, f: x => valor(k, x) }))];
+    { k: "val", t: "Válidos", n: true, f: nu }, { k: "pct", t: "% válidos", n: true, f: pc }, ...COLUNAS_TAB.map(k => ({ k, t: rotuloInd(k), n: true, f: x => valor(k, x) }))];
+}
+
+const MIN_VALIDOS_TAB = { secoes: 50, locais: MIN_VALIDOS_PCT, bairros: 1000 };
+const ORDENS = { votos: ["votos", -1], pct: ["pct", -1], pct_asc: ["pct", 1], val: ["val", -1] };
+function sincronizaOrdem() {
+  const sel = $("#sel-ord"); if (!sel) return;
+  const achou = Object.entries(ORDENS).find(([, [c, d]]) => c === E.ord.col && d === E.ord.dir);
+  if (achou) sel.value = achou[0];
+  else if (![...sel.options].some(o => o.value === "outra")) sel.insertAdjacentHTML("beforeend", `<option value="outra">Coluna escolhida na tabela</option>`);
+  if (!achou) sel.value = "outra";
+  else { const o = sel.querySelector('option[value="outra"]'); if (o) o.remove(); }
 }
 
 function desenharTabela() {
   const cols = colunasTabela(), linhas = linhasTabela();
+  sincronizaOrdem();
   const { col, dir } = E.ord;
-  linhas.sort((a, b) => { const x = a[col], y = b[col]; if (x == null) return 1; if (y == null) return -1; return (x < y ? -1 : x > y ? 1 : 0) * dir; });
+  const minimo = col === "pct" ? MIN_VALIDOS_TAB[E.tab] : 0;
+  const pequena = r => minimo && (r.val || 0) < minimo;
+  linhas.sort((a, b) => {
+    if (pequena(a) !== pequena(b)) return pequena(a) ? 1 : -1;  // linhas minúsculas não disputam o ranking por %
+    const x = a[col], y = b[col]; if (x == null) return 1; if (y == null) return -1; return (x < y ? -1 : x > y ? 1 : 0) * dir;
+  });
+  const nPeq = minimo ? linhas.filter(pequena).length : 0;
+  $("#nota-ord").textContent = nPeq
+    ? `Ordenando por %: ${fmt.format(nPeq)} ${E.tab === "secoes" ? "seções" : E.tab === "locais" ? "locais" : "bairros"} com menos de ${fmt.format(minimo)} votos válidos ficam no fim da lista, porque nelas poucos votos mudam muito o percentual.`
+    : "";
   const POR = 100, paginas = Math.max(1, Math.ceil(linhas.length / POR));
   E.pag = Math.min(Math.max(0, E.pag), paginas - 1);
   const vis = linhas.slice(E.pag * POR, E.pag * POR + POR);
