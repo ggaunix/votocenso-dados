@@ -26,7 +26,8 @@ from . import censo, config, contas, entorno, tse
 PRAZO_CONTAS_FINAL = {2026: dt.date(2026, 11, 3)}  # 1º turno; depois disso o TSE ainda leva dias para publicar
 
 NOMES_CARGO = {5: "Senador", 6: "Deputado federal", 7: "Deputado estadual", 8: "Deputado distrital"}
-NAO_ELEITOS = {5: 5, 6: 30, 7: 30, 8: 15}  # mais votados não eleitos que também ganham detalhe
+NAO_ELEITOS = {5: 5, 6: 30, 7: 30, 8: 15}  # mínimo de não eleitos com mapa, mesmo abaixo do corte de votos
+MIN_VOTOS_MAPA = 1000  # todo candidato com pelo menos isso ganha mapa e perfil
 
 INDICADORES = [  # chave, rótulo, unidade, casas decimais
     ("renda_media_responsavel", "Renda média do responsável", "R$", 0),
@@ -89,6 +90,7 @@ def main(argv=None):
     p.add_argument("--uf", required=True, type=str.upper)
     p.add_argument("--raio", type=float, default=config.RAIO_PADRAO_M)
     p.add_argument("--saida", type=Path, default=None)
+    p.add_argument("--min-votos", dest="min_votos", type=int, default=MIN_VOTOS_MAPA)
     a = p.parse_args(argv)
     destino = a.saida or (config.RAIZ / "portal_dados" / f"{a.ano}_{a.uf}")
     cargos = [5, 6, 8] if a.uf == "DF" else [5, 6, 7]
@@ -106,6 +108,9 @@ def main(argv=None):
             resto = t[(t["CD_CARGO"] == cargo) & ~eleito].nlargest(
                 NAO_ELEITOS[cargo] * (1 if eleito.any() else 4), "votos")
             sel |= set(zip(resto["CD_CARGO"], resto["NR_VOTAVEL"]))
+        corte = t[t["votos"] >= a.min_votos]
+        sel |= set(zip(corte["CD_CARGO"], corte["NR_VOTAVEL"]))
+        log(f"   candidatos com mapa: {len(sel)} (eleitos + todos com {a.min_votos} votos ou mais)")
         return {(int(c), int(n)) for c, n in sel}
 
     log("votos por seção (passadas 1 e 2)...")
@@ -223,7 +228,7 @@ def main(argv=None):
         log("   geopandas ausente: limites.json não gerado")
 
     meta = {
-        "ano": a.ano, "uf": a.uf, "turno": 1, "raio_m": a.raio,
+        "ano": a.ano, "uf": a.uf, "turno": 1, "raio_m": a.raio, "min_votos_mapa": a.min_votos,
         "gerado_em": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"),
         "municipios": muns,
         "cargos": {str(c): {"nome": NOMES_CARGO[c],

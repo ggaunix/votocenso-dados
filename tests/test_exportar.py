@@ -56,6 +56,7 @@ def main():
 
         assert cand["6_1111"]["partido"] == "AAA" and cand["6_1111"]["situacao"] == "ELEITO POR QP"
         assert cand["6_3333"]["detalhe"] is True  # não eleito mais votado entra
+        assert meta["min_votos_mapa"] == 1000
         assert "NR_CPF" not in json.dumps(meta)
         assert L["n"] == 40 and len(L["lat"]) == 40 and L["lat"].count(None) == 2
         assert sum(c["v"]) == cand["6_1111"]["votos"] == sum(c["s_v"])
