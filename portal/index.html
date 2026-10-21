@@ -91,10 +91,26 @@ select, input[type=search] { background: var(--folha); border: 1px solid var(--l
 .cabeca .total { margin-left: auto; text-align: right; }
 .cabeca .total b { display: block; font: 700 clamp(26px, 3.6vw, 38px)/1 var(--f-dado); }
 .cabeca .total span { font-size: 12px; color: var(--tinta-3); }
-.numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--linha); border: 1px solid var(--linha); border-radius: 8px; overflow: hidden; }
-.numeros div { background: var(--folha); padding: 10px 14px; min-width: 0; }
+.numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
+.numeros > div { position: relative; background: var(--folha); border: 1px solid var(--linha); border-radius: 8px; padding: 10px 14px; min-width: 0; }
 .numeros b { display: block; font: 600 20px/1.2 var(--f-dado); }
-.numeros span { font-size: 12px; color: var(--tinta-3); }
+.numeros b small { font: 500 13px var(--f-dado); color: var(--tinta-3); }
+.numeros .rot { font-size: 12px; color: var(--tinta-3); }
+.ajuda { display: inline-grid; place-items: center; width: 16px; height: 16px; margin-left: 4px; padding: 0; border: 1px solid var(--linha-2); border-radius: 50%; background: var(--papel); color: var(--tinta-2); font: 600 10px/1 var(--f-texto); cursor: help; vertical-align: 1px; }
+.ajuda:hover, .ajuda:focus-visible { border-color: var(--tinta-2); color: var(--tinta); }
+.ajuda::after { content: attr(data-dica); position: absolute; left: 8px; right: 8px; top: calc(100% + 6px); z-index: 1500; background: var(--tinta); color: var(--papel); font: 400 12.5px/1.4 var(--f-texto); text-align: left; padding: 8px 10px; border-radius: 6px; box-shadow: 0 6px 18px rgb(0 0 0 / .2); opacity: 0; pointer-events: none; transition: opacity .12s; }
+.ajuda:hover::after, .ajuda:focus::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .ajuda::after { transition: none; } }
+.top { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 0 24px; margin: 0; padding: 0; list-style: none; }
+.top li { border-bottom: 1px solid var(--linha); }
+.top button { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 2px 10px; width: 100%; padding: 7px 4px; border: 0; background: none; text-align: left; cursor: pointer; border-radius: 4px; }
+.top button:hover:not(:disabled) { background: var(--carimbo-fundo); }
+.top button:disabled { cursor: default; }
+.top .pos { grid-row: 1 / span 2; font: 600 14px/1.6 var(--f-dado); color: var(--tinta-3); }
+.top .nm { font-weight: 600; overflow-wrap: anywhere; }
+.top .onde { grid-column: 2; font-size: 12px; color: var(--tinta-3); }
+.top .vt { grid-row: 1 / span 2; grid-column: 3; text-align: right; font: 500 14px/1.3 var(--f-dado); }
+.top .vt small { display: block; font-size: 11.5px; color: var(--tinta-3); }
 .controles { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
 .controles label { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-width: 0; max-width: 100%; }
 .controles select { flex: 1 1 180px; min-width: 0; max-width: 100%; }
@@ -205,6 +221,11 @@ table.dados td.m { white-space: nowrap; }
     <div class="total"><b id="c-votos" class="num"></b><span id="c-votos-rot"></span></div>
   </div>
   <div class="numeros" id="c-numeros"></div>
+  <div class="cartao">
+    <h3 id="top-titulo">Os 10 locais com mais votos</h3>
+    <p class="expl">Clique num local para vê-lo no mapa.</p>
+    <ol class="top" id="c-top"></ol>
+  </div>
   <div class="controles">
     <label><span class="rotulo">Município</span><select id="sel-mun"></select></label>
     <label><span class="rotulo">Censo do</span><select id="sel-nivel"></select></label>
@@ -422,6 +443,7 @@ function montarFicha(c) {
   $("#pag-ant").addEventListener("click", () => { E.pag--; desenharTabela(); });
   $("#pag-prox").addEventListener("click", () => { E.pag++; desenharTabela(); });
   $("#exportar").addEventListener("click", exportarCSV);
+  $("#c-top").addEventListener("click", e => { const b = e.target.closest("button[data-li]"); if (b && !b.disabled) irParaLocal(+b.dataset.li); });
 
   criarMapa();
   atualizar(true);
@@ -438,23 +460,59 @@ function atualizar(reenquadrar) {
 }
 
 function desenharNumeros() {
-  const v = E.votosLocal, n = E.L.n;
-  let tot = 0, locais = 0; const lista = [];
-  for (let i = 0; i < n; i++) if (filtro(i) && v[i] > 0) { tot += v[i]; locais++; lista.push(v[i]); }
-  lista.sort((a, b) => b - a);
-  const k = Math.max(1, Math.ceil(lista.length * 0.1));
-  const top = lista.slice(0, k).reduce((s, x) => s + x, 0);
+  const v = E.votosLocal, val = E.valLocal, n = E.L.n;
+  let tot = 0, locais = 0, locaisTotal = 0;
+  for (let i = 0; i < n; i++) if (filtro(i)) { locaisTotal++; if (v[i] > 0) { tot += v[i]; locais++; } }
   const secoes = E.dadosCand.s_li.filter(li => filtro(li)).length;
   const total = E.meta.candidatos.find(c => c.id === E.cand).votos;
-  const principal = E.munOrdem[0];
-  const itens = [
-    [fmt.format(tot), E.mun === -1 ? "votos com local identificado" : "votos neste município"],
-    [fmt.format(locais), "locais de votação com voto"],
-    [fmt.format(secoes), "seções com voto"],
-    [fmt1.format(tot ? 100 * top / tot : 0) + "%", "dos votos nos 10% locais mais fortes"],
-  ];
-  if (E.mun === -1 && principal) itens.push([fmt1.format(100 * principal[1] / total) + "%", "em " + E.meta.municipios[principal[0]]]);
-  $("#c-numeros").innerHTML = itens.map(([b, s]) => `<div><b>${b}</b><span>${esc(s)}</span></div>`).join("");
+  const ondeTxt = E.mun === -1 ? "do estado" : "do município";
+  const itens = [];
+  if (E.mun !== -1) itens.push([fmt.format(tot), `votos neste município (${fmt1.format(100 * tot / total)}% do total dele)`]);
+  itens.push([`${fmt.format(locais)} <small>de ${fmt.format(locaisTotal)}</small>`, "locais de votação com voto",
+    `Locais de votação (em geral escolas) onde o candidato teve pelo menos 1 voto, entre todos os locais ${ondeTxt}. Cada local reúne várias seções.`]);
+  itens.push([fmt.format(secoes), "seções com voto",
+    `Seções eleitorais (cada uma é uma urna, com algumas centenas de eleitores) onde o candidato teve pelo menos 1 voto ${ondeTxt}.`]);
+  if (E.mun === -1) {
+    let valTot = 0; for (let i = 0; i < n; i++) valTot += val[i];
+    for (const [m, vm] of E.munOrdem.slice(0, 2)) {
+      let valM = 0; for (let i = 0; i < n; i++) if (E.L.mun[i] === m) valM += val[i];
+      const nome = E.meta.municipios[m];
+      itens.push([fmt1.format(100 * vm / total) + "%", `dos votos dele vêm de ${nome}`,
+        `${nome} tem ${fmt1.format(100 * valM / valTot)}% dos votos válidos do cargo no estado. Se a fatia dos votos dele for maior que isso, o voto dele está concentrado na cidade; se for menor, vem mais de fora dela.`,
+        `cidade tem ${fmt1.format(100 * valM / valTot)}% dos válidos`]);
+    }
+  }
+  $("#c-numeros").innerHTML = itens.map(([b, rot, dica, extra]) => `<div><b>${b}</b><span class="rot">${esc(rot)}${dica ? ` <button type="button" class="ajuda" aria-label="O que é isso? ${esc(dica)}" data-dica="${esc(dica)}">?</button>` : ""}${extra ? `<br>${esc(extra)}` : ""}</span></div>`).join("");
+  desenharTop();
+}
+
+function desenharTop() {
+  const v = E.votosLocal, val = E.valLocal, L0 = E.L, idx = [];
+  for (let i = 0; i < L0.n; i++) if (filtro(i) && v[i] > 0) idx.push(i);
+  idx.sort((a, b) => v[b] - v[a]);
+  $("#top-titulo").textContent = `Os 10 locais com mais votos${E.mun === -1 ? "" : " em " + E.meta.municipios[E.mun]}`;
+  $("#c-top").innerHTML = idx.slice(0, 10).map((i, k) => {
+    const sem = L0.lat[i] == null;
+    return `<li><button type="button" data-li="${i}" ${sem ? "disabled title=\"O TSE não publicou a coordenada deste local\"" : ""}>
+      <span class="pos">${k + 1}</span>
+      <span class="nm">${esc(L0.nome[i])}</span>
+      <span class="vt">${fmt.format(v[i])}<small>${val[i] ? fmt1.format(100 * v[i] / val[i]) + "% dos válidos" : ""}</small></span>
+      <span class="onde">${esc(ondeLocal(i))}${sem ? " · sem coordenada" : ""}</span>
+    </button></li>`;
+  }).join("");
+}
+
+function ondeLocal(i) {
+  const L0 = E.L, mun = E.meta.municipios[L0.mun[i]], b = L0.bairro_ibge[i] || L0.bairro[i] || "";
+  return b && norm(b) !== norm(mun) ? `${b} · ${mun}` : mun;
+}
+
+function irParaLocal(i) {
+  const c = E.marcadores && E.marcadores.get(i);
+  if (!mapa || !c) return;
+  $("#mapa").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+  mapa.setView(c.getLatLng(), Math.max(mapa.getZoom(), 14));
+  setTimeout(() => c.openPopup(), 250);
 }
 
 /* ---------------------------------------------------------------- mapa */
@@ -480,6 +538,7 @@ function rampa() { return ["--r0", "--r1", "--r2", "--r3", "--r4", "--r5"].map(t
 function desenharMapa(reenquadrar) {
   if (!mapa) return;
   camadaPontos.clearLayers();
+  E.marcadores = new Map();
   const v = E.votosLocal, val = E.valLocal, L0 = E.L, n = L0.n;
   const idx = [];
   let maxv = 0;
@@ -498,6 +557,7 @@ function desenharMapa(reenquadrar) {
     });
     c._raioBase = 1.5 + 13 * Math.sqrt(v[i] / maxv);
     c.bindPopup(() => popupLocal(i), { maxWidth: 300 });
+    E.marcadores.set(i, c);
     camadaPontos.addLayer(c);
   }
   if (reenquadrar) {
@@ -515,7 +575,7 @@ function popupLocal(i) {
   const linhas = [["Votos", fmt.format(v)], ["% dos válidos", val ? fmt1.format(100 * v / val) + "%" : "–"], ["Eleitores", fmt.format(L0.eleit[i] || 0)]];
   for (const k of COLUNAS_TAB) if (ind[k]) linhas.push([rotuloInd(k), valor(k, ind[k][i])]);
   return `<div class="pop"><h4>${esc(L0.nome[i])}</h4>
-    <div class="end">${esc(L0.end[i])} · ${esc(L0.bairro_ibge[i] || L0.bairro[i])} · ${esc(E.meta.municipios[L0.mun[i]])}<br>
+    <div class="end">${esc(L0.end[i])} · ${esc(ondeLocal(i))}<br>
     <span class="num">Zona ${pad(L0.zona[i], 4)} · Local ${pad(L0.nr[i], 4)}</span></div>
     <dl>${linhas.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${b}</dd>`).join("")}</dl>
     <div class="nota" style="margin-top:6px">Censo: ${esc(E.meta.niveis[E.nivel])}</div></div>`;
