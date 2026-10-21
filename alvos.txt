@@ -1,0 +1,3 @@
+# UF ANO  (uma linha por recorte; editar e fazer push dispara o processamento)
+# Censo usado é sempre o de 2022 (o mais recente)
+SP 2026

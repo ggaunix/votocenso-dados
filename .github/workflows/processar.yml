@@ -1,0 +1,74 @@
+name: processar dados do portal
+
+# Roda quando alvos.txt ou o código mudam, ou manualmente.
+on:
+  push:
+    branches: [main]
+    paths: ["alvos.txt", "votocenso/**", "baixar_dados.sh", ".github/workflows/processar.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: processar
+  cancel-in-progress: false
+
+jobs:
+  alvos:
+    runs-on: ubuntu-latest
+    outputs:
+      matriz: ${{ steps.m.outputs.matriz }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: m
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          alvos = []
+          for l in open("alvos.txt"):
+              l = l.split("#")[0].split()
+              if len(l) == 2:
+                  alvos.append({"uf": l[0].upper(), "ano": l[1]})
+          print("matriz=" + json.dumps({"include": alvos}))
+          PY
+
+  processar:
+    needs: alvos
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJson(needs.alvos.outputs.matriz) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: cache dos downloads
+        uses: actions/cache@v4
+        with:
+          path: dados
+          key: dados-${{ matrix.uf }}-${{ matrix.ano }}-v1
+
+      - name: baixar TSE e IBGE
+        run: ./baixar_dados.sh ${{ matrix.uf }} ${{ matrix.ano }}
+
+      - name: conferir códigos do censo no dicionário
+        run: python -m votocenso.verificar
+
+      - name: gerar dados do portal
+        run: python -m votocenso.exportar --ano ${{ matrix.ano }} --uf ${{ matrix.uf }}
+
+      - name: gravar no repositório
+        run: |
+          cp saida/variaveis_usadas.csv portal_dados/${{ matrix.ano }}_${{ matrix.uf }}/ || true
+          git config user.name "votocenso-bot"
+          git config user.email "votocenso-bot@users.noreply.github.com"
+          git add portal_dados/${{ matrix.ano }}_${{ matrix.uf }}
+          git commit -m "dados ${{ matrix.uf }} ${{ matrix.ano }}" || exit 0
+          for i in 1 2 3; do git pull --rebase && git push && break; sleep 10; done

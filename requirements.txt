@@ -1,0 +1,6 @@
+pandas>=2.2
+numpy
+scipy
+openpyxl
+geopandas>=1.0
+pyogrio
