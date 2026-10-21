@@ -17,8 +17,8 @@
               cor_amarela   cor_ou_raca V01319                                                                                                               Pessoas | Cor ou Raça | Cor ou raça é amarela
                 cor_parda   cor_ou_raca V01320                                                                                                                 Pessoas | Cor ou Raça | Cor ou raça é parda
              cor_indigena   cor_ou_raca V01321                                                                                                              Pessoas | Cor ou Raça | Cor ou raça é indígena
-              pop_15_mais alfabetizacao V00900                                                                                      Pessoas | Alfabetização | 15 anos ou mais, Morador sabe ler e escrever
-    alfabetizados_15_mais alfabetizacao V00901                                                                                  Pessoas | Alfabetização | 15 anos ou mais, Morador não sabe ler e escrever
+    alfabetizados_15_mais alfabetizacao V00900                                                                                      Pessoas | Alfabetização | 15 anos ou mais, Morador sabe ler e escrever
+      analfabetos_15_mais alfabetizacao V00901                                                                                  Pessoas | Alfabetização | 15 anos ou mais, Morador não sabe ler e escrever
    responsaveis_com_renda         renda V06001                                                                 Renda do Responsável | Pessoas responsáveis em domicílios particulares permanentes ocupados
   renda_media_responsavel         renda V06004   Renda do Responsável | Valor do rendimento nominal médio mensal das pessoas responsáveis com rendimentos por domicílios particulares permanentes ocupados
 renda_mediana_responsavel         renda V06006 Renda do Responsável | Valor do rendimento nominal mediano mensal das pessoas responsáveis com rendimentos por domicílios particulares permanentes ocupados
