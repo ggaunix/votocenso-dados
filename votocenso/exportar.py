@@ -206,7 +206,7 @@ def main(argv=None):
                    for c in cargos},
         "candidatos": lista_cand,
         "indicadores": [{"chave": k, "rotulo": r, "unidade": u, "casas": c} for k, r, u, c in INDICADORES],
-        "niveis": {"raio": f"Entorno de {a.raio:.0f} m", "bairro": "Bairro (IBGE)", "setor": "Setor censitário"},
+        "niveis": {"raio": f"Entorno de {a.raio:.0f} m", "bairro": "Bairro do IBGE (ou distrito)", "setor": "Setor censitário"},
         "limites": tem_limites,
         "avisos": {
             "locais_sem_coordenada": int(locais["lat"].isna().sum()),

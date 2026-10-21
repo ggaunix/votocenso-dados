@@ -95,11 +95,24 @@ def carregar_setores(uf: str) -> pd.DataFrame:
     # Populações em favela/comunidade urbana (CD_TIPO=1) e em setor rural (CD_SIT 5-8)
     out["pop_favela"] = out["pop"].where(out["CD_TIPO"] == 1, 0)
     out["pop_rural"] = out["pop"].where(out["CD_SIT"] >= 5, 0)
-    # Bairro: municípios sem bairro oficial caem no subdistrito/distrito
-    out["unidade_bairro"] = out["CD_BAIRRO"].where(out["CD_BAIRRO"].fillna("").str.len() > 0,
-                                                   "D" + out["CD_DIST"].astype(str))
-    out["nome_bairro"] = out["NM_BAIRRO"].where(out["CD_BAIRRO"].fillna("").str.len() > 0,
-                                                out["NM_DIST"])
+    # Bairro: só vale onde o IBGE dá nome ao bairro (o código vem preenchido mesmo sem
+    # bairro). Sem bairro, usa o distrito; sem distrito, o município.
+    def texto(col):
+        return out[col].astype("string").fillna("").str.strip().replace({"nan": "", "None": ""})
+
+    nm_b, nm_d, nm_m = texto("NM_BAIRRO"), texto("NM_DIST"), texto("NM_MUN")
+    cd_b, cd_d, cd_m = texto("CD_BAIRRO"), texto("CD_DIST"), texto("CD_MUN")
+    tem_b = (nm_b != "") & (cd_b != "")
+    tem_d = (nm_d != "") & (cd_d != "")
+    out["unidade_bairro"] = ("B" + cd_b).where(tem_b, ("D" + cd_d).where(tem_d, "M" + cd_m)).astype(str)
+    out["nome_bairro"] = nm_b.where(tem_b, nm_d.where(tem_d, nm_m)).astype(str)
+    n_b, n_d = int(tem_b.sum()), int((~tem_b & tem_d).sum())
+    print(f"   bairros: {n_b} setores com bairro, {n_d} usam o distrito, {len(out) - n_b - n_d} o município",
+          flush=True)
+    # nenhum bairro/distrito chega a 5 milhões; se chegar, o agrupamento juntou coisa demais
+    pop_unid = out.groupby("unidade_bairro")["pop"].sum()
+    if (pop_unid > 5_000_000).any():
+        raise ValueError(f"Unidade de bairro com população implausível: {pop_unid.nlargest(3).to_dict()}")
     config.CACHE.mkdir(parents=True, exist_ok=True)
     out.to_pickle(cache)
     return out

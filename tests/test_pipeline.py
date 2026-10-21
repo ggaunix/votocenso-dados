@@ -45,6 +45,7 @@ def gerar(raiz: Path, n_locais: int = 40):
         "v0001": s["pop"], "v0007": (s["pop"] / 2.8).astype(int),
     }).astype(str)
     basico.loc[5, "v0007"] = "X"  # supressão
+    basico.loc[basico.index[:200], "NM_BAIRRO"] = ""  # código de bairro preenchido, sem bairro de fato
     # setor de outra UF que tem de ser filtrado
     basico = pd.concat([basico, basico.iloc[[0]].assign(CD_SETOR="330455705000001")])
     basico.to_csv(ibge / "Agregados_por_setores_basico_BR_20260520.csv", sep=";", index=False, encoding="utf-8")
