@@ -29,6 +29,10 @@ def main():
                  SG_PARTIDO="CCC", DS_SIT_TOT_TURNO="ELEITO", NR_CPF_CANDIDATO="000"),
         ]).to_csv(tmp / "dados/tse/consulta_cand_2022_SP.csv", sep=";", index=False, encoding="latin-1")
 
+        tse_dir = tmp / "dados/tse"
+        (tse_dir / "eleitorado_local_votacao_2022.csv").rename(tse_dir / "eleitorado_local_votacao_2022_SP.csv")
+        ac = pd.read_csv(tse_dir / "eleitorado_local_votacao_2022_SP.csv", sep=";", encoding="latin-1", dtype=str).head(3)
+        ac.assign(SG_UF="AC").to_csv(tse_dir / "eleitorado_local_votacao_2022_AC.csv", sep=";", index=False, encoding="latin-1")
         config.DADOS, config.DADOS_TSE, config.DADOS_IBGE = tmp / "dados", tmp / "dados/tse", tmp / "dados/ibge"
         config.CACHE = tmp / "dados/cache"
         destino = Path(sys.argv[1]) if len(sys.argv) > 1 else tmp / "out"

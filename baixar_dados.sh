@@ -43,7 +43,12 @@ for ANO in "${ANOS[@]}"; do
 
   z="$TSE/eleitorado_local_votacao_${ANO}.zip"
   if ls "$TSE"/eleitorado_local_votacao_"${ANO}"*.csv >/dev/null 2>&1; then echo "ok eleitorado_local_votacao $ANO"
-  elif baixar "$U_TSE/eleitorado_locais_votacao/eleitorado_local_votacao_${ANO}.zip" "$z"; then extrair "$z" "$TSE"; fi
+  elif baixar "$U_TSE/eleitorado_locais_votacao/eleitorado_local_votacao_${ANO}.zip" "$z"; then
+    extrair "$z" "$TSE"
+    if [[ -f "$TSE/eleitorado_local_votacao_${ANO}_${UF}.csv" ]]; then
+      find "$TSE" -name "eleitorado_local_votacao_${ANO}_*.csv" ! -name "*_${UF}.csv" -delete
+    fi
+  fi
 done
 
 # Censo 2022: malha da UF (com atributos) + agregados nacionais por setor

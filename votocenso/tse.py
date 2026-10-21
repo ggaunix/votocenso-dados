@@ -50,7 +50,14 @@ def carregar_locais(ano: int, uf: str, turno: int = 1):
     secoes: uma linha por seção -> local de votação.
     locais: uma linha por local com endereço, bairro declarado, lat/lon e eleitores.
     """
-    caminho = _achar(config.DADOS_TSE, f"eleitorado_local_votacao_{ano}*.csv")
+    caminho = None
+    for padrao in (f"eleitorado_local_votacao_{ano}_{uf}.csv", f"eleitorado_local_votacao_{ano}_BRASIL.csv",
+                   f"eleitorado_local_votacao_{ano}.csv"):
+        if (config.DADOS_TSE / padrao).exists():
+            caminho = config.DADOS_TSE / padrao
+            break
+    if caminho is None:
+        caminho = _achar(config.DADOS_TSE, f"eleitorado_local_votacao_{ano}*.csv")
     cols = [
         "NR_TURNO", "SG_UF", "CD_MUNICIPIO", "NM_MUNICIPIO", "NR_ZONA", "NR_SECAO",
         "NR_LOCAL_VOTACAO", "NM_LOCAL_VOTACAO", "DS_ENDERECO", "NM_BAIRRO", "NR_CEP",

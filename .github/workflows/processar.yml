@@ -49,11 +49,14 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
 
-      - name: cache dos downloads
-        uses: actions/cache@v4
+      - name: restaurar downloads do cache
+        id: cache
+        uses: actions/cache/restore@v4
         with:
-          path: dados
-          key: dados-${{ matrix.uf }}-${{ matrix.ano }}-v1
+          path: |
+            dados/tse
+            dados/ibge
+          key: dados-${{ matrix.uf }}-${{ matrix.ano }}-v2
 
       - name: baixar TSE e IBGE
         run: |
@@ -61,6 +64,15 @@ jobs:
           set -o pipefail
           ./baixar_dados.sh ${{ matrix.uf }} ${{ matrix.ano }} 2>&1 | tee diagnostico/${{ matrix.ano }}_${{ matrix.uf }}/1_download.txt
           ls -la dados/tse dados/ibge 2>&1 | tee -a diagnostico/${{ matrix.ano }}_${{ matrix.uf }}/1_download.txt
+
+      - name: guardar downloads no cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            dados/tse
+            dados/ibge
+          key: dados-${{ matrix.uf }}-${{ matrix.ano }}-v2
 
       - name: conferir códigos do censo no dicionário
         run: |

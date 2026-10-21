@@ -62,8 +62,8 @@ CONTAGENS = {
     "cor_amarela": ("cor_ou_raca", "V01319"),
     "cor_parda": ("cor_ou_raca", "V01320"),
     "cor_indigena": ("cor_ou_raca", "V01321"),
-    "pop_15_mais": ("alfabetizacao", "V00900"),
-    "alfabetizados_15_mais": ("alfabetizacao", "V00901"),
+    "alfabetizados_15_mais": ("alfabetizacao", "V00900"),  # 15+, sabe ler e escrever
+    "analfabetos_15_mais": ("alfabetizacao", "V00901"),    # 15+, não sabe ler e escrever
     "responsaveis_com_renda": ("renda", "V06001"),
 }
 # Médias não se somam: guardamos o código e ponderamos pelo peso indicado.

@@ -128,7 +128,8 @@ def indicadores(soma: pd.DataFrame) -> pd.DataFrame:
         r["pct_" + c.removeprefix("cor_")] = (100 * soma[c] / cor_total).round(1)
     r["pct_preta_parda"] = (r["pct_preta"] + r["pct_parda"]).round(1)
 
-    r["pct_alfabetizados_15_mais"] = (100 * soma["alfabetizados_15_mais"] / soma["pop_15_mais"]).round(1)
+    p15 = soma[["alfabetizados_15_mais", "analfabetos_15_mais"]].sum(axis=1, min_count=2)
+    r["pct_alfabetizados_15_mais"] = (100 * soma["alfabetizados_15_mais"] / p15).round(1)
 
     for nome in config.MEDIAS:
         r[nome] = (soma[f"_{nome}_x_peso"] / soma[f"_{nome}_peso"]).round(0)

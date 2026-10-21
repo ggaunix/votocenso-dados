@@ -62,7 +62,8 @@ def gerar(raiz: Path, n_locais: int = 40):
     cor.to_csv(ibge / "Agregados_por_setores_cor_ou_raca_BR.csv", sep=";", index=False)
 
     p15 = (s["pop"] * .81).astype(int)
-    pd.DataFrame({"CD_SETOR": s["CD_SETOR"], "V00900": p15, "V00901": (p15 * (.9 + .09 * (s["renda"] / 10500))).astype(int)}
+    alf = (p15 * (.9 + .09 * (s["renda"] / 10500))).astype(int)
+    pd.DataFrame({"CD_SETOR": s["CD_SETOR"], "V00900": alf, "V00901": p15 - alf}
                  ).to_csv(ibge / "Agregados_por_setores_alfabetizacao_BR.csv", sep=";", index=False)
 
     resp = (s["pop"] / 3).astype(int)
