@@ -412,7 +412,7 @@ function desenharLista() {
   const eleito = c => /^ELEITO/i.test(c.situacao);
   const filtrados = todos.filter(c => (!so || c.detalhe) && (E.sit === "todos" || (E.sit === "eleitos") === eleito(c)) &&
     (!q || norm(c.nome).includes(q) || String(c.nr).startsWith(q) || norm(c.partido) === q));
-  const vis = filtrados.slice(0, 300);
+  const vis = filtrados.slice(0, 3000);
   $("#cands").innerHTML = vis.map(c => {
     const el = /^ELEITO/i.test(c.situacao);
     return `<li class="cand${c.detalhe ? "" : " sem-detalhe"}" data-id="${c.id}" tabindex="${c.detalhe ? 0 : -1}" aria-current="${c.id === E.cand}">
