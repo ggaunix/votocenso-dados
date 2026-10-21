@@ -53,7 +53,12 @@ def ler_tema(tema: str, uf: str, colunas: list[str]) -> pd.DataFrame:
         b = b.rename(columns=mapa)
         b["CD_SETOR"] = _so_digitos(b["CD_SETOR"])
         partes.append(b[b["CD_SETOR"].str.startswith(prefixo)])
-    return pd.concat(partes, ignore_index=True)
+    df = pd.concat(partes, ignore_index=True)
+    rep = int(df["CD_SETOR"].duplicated().sum())
+    if rep:
+        print(f"   {caminho.name}: {rep} linhas com setor repetido descartadas", flush=True)
+        df = df.drop_duplicates("CD_SETOR")
+    return df
 
 
 def carregar_setores(uf: str) -> pd.DataFrame:

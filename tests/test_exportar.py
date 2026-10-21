@@ -33,6 +33,10 @@ def main():
         (tse_dir / "eleitorado_local_votacao_2022.csv").rename(tse_dir / "eleitorado_local_votacao_2022_SP.csv")
         ac = pd.read_csv(tse_dir / "eleitorado_local_votacao_2022_SP.csv", sep=";", encoding="latin-1", dtype=str).head(3)
         ac.assign(SG_UF="AC").to_csv(tse_dir / "eleitorado_local_votacao_2022_AC.csv", sep=";", index=False, encoding="latin-1")
+        # setor repetido (como na malha real) não pode quebrar o cruzamento
+        cc = tmp / "dados/cache/centroides_SP.csv"
+        c0 = pd.read_csv(cc, dtype={"CD_SETOR": str})
+        pd.concat([c0, c0.head(2)]).to_csv(cc, index=False)
         config.DADOS, config.DADOS_TSE, config.DADOS_IBGE = tmp / "dados", tmp / "dados/tse", tmp / "dados/ibge"
         config.CACHE = tmp / "dados/cache"
         destino = Path(sys.argv[1]) if len(sys.argv) > 1 else tmp / "out"

@@ -32,6 +32,12 @@ def centroides_setores(uf: str) -> pd.DataFrame:
     if cache.exists():
         return pd.read_csv(cache, dtype={"CD_SETOR": str})
     g = _ler_malha(uf)
+    rep = int(g["CD_SETOR"].duplicated().sum())
+    if rep:
+        # setores com mais de um polígono na malha: junta os pedaços antes do centroide
+        print(f"   malha: {rep} polígonos extras de setores repetidos; dissolvendo", flush=True)
+        dup = g["CD_SETOR"].duplicated(keep=False)
+        g = pd.concat([g[~dup], g[dup].dissolve(by="CD_SETOR", as_index=False)], ignore_index=True)
     c = g.to_crs(CRS_METROS).centroid.to_crs(4326)
     out = pd.DataFrame({"CD_SETOR": g["CD_SETOR"], "lat": c.y, "lon": c.x})
     config.CACHE.mkdir(parents=True, exist_ok=True)

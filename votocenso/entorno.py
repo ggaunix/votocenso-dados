@@ -24,7 +24,8 @@ def _unitario(lat, lon):
 def perfil_locais(locais: pd.DataFrame, setores: pd.DataFrame, centroides: pd.DataFrame,
                   setor_contem: pd.Series | None, raio_m: float,
                   niveis=("setor", "raio", "bairro")) -> pd.DataFrame:
-    st = setores.merge(centroides, on="CD_SETOR", how="inner").reset_index(drop=True)
+    st = (setores.drop_duplicates("CD_SETOR")
+          .merge(centroides.drop_duplicates("CD_SETOR"), on="CD_SETOR", how="inner").reset_index(drop=True))
     arvore = cKDTree(_unitario(st["lat"].values, st["lon"].values))
     pos_setor = pd.Series(st.index, index=st["CD_SETOR"])
 
