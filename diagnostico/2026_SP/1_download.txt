@@ -5,7 +5,7 @@ ok (já existe) SP_setores_CD2022.gpkg
 baixando Agregados_por_setores_basico_BR_20260520.zip
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  3 14.7M    3  480k    0     0   271k      0  0:00:55  0:00:01  0:00:54  271k 27 14.7M   27 4176k    0     0  1553k      0  0:00:09  0:00:02  0:00:07 1552k100 14.7M  100 14.7M    0     0  4440k      0  0:00:03  0:00:03 --:--:-- 4441k
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0 14.7M    0 57344    0     0  42562      0  0:06:02  0:00:01  0:06:01 42540  5 14.7M    5  840k    0     0   357k      0  0:00:42  0:00:02  0:00:40  357k 21 14.7M   21 3288k    0     0   980k      0  0:00:15  0:00:03  0:00:12  980k 88 14.7M   88 13.0M    0     0  3074k      0  0:00:04  0:00:04 --:--:-- 3074k100 14.7M  100 14.7M    0     0  3456k      0  0:00:04  0:00:04 --:--:-- 3910k
 ok Agregados_por_setores_demografia_BR
 ok Agregados_por_setores_cor_ou_raca_BR
 ok Agregados_por_setores_alfabetizacao_BR
@@ -15,8 +15,8 @@ ok (já existe) dicionario_renda_responsavel.xlsx
 feito. Agora: python -m votocenso.verificar
 dados/ibge:
 total 1346988
-drwxr-xr-x 2 runner runner      4096 Oct 21 09:58 .
-drwxr-xr-x 4 runner runner      4096 Oct 21 09:58 ..
+drwxr-xr-x 2 runner runner      4096 Oct 21 10:05 .
+drwxr-xr-x 4 runner runner      4096 Oct 21 10:05 ..
 -rw-r--r-- 1 runner runner 735110705 Nov 12  2024 Agregados_por_setores_alfabetizacao_BR.csv
 -rw-r--r-- 1 runner runner 140970380 May  8 12:53 Agregados_por_setores_basico_BR.csv
 -rw-r--r-- 1 runner runner 201444000 Nov 12  2024 Agregados_por_setores_cor_ou_raca_BR.csv
@@ -29,7 +29,7 @@ drwxr-xr-x 4 runner runner      4096 Oct 21 09:58 ..
 dados/tse:
 total 4921556
 drwxr-xr-x 2 runner runner       4096 Oct 21 09:52 .
-drwxr-xr-x 4 runner runner       4096 Oct 21 09:58 ..
+drwxr-xr-x 4 runner runner       4096 Oct 21 10:05 ..
 -rw-r--r-- 1 runner runner    1441082 Oct 21 08:34 consulta_cand_2026_SP.csv
 -rw-r--r-- 1 runner runner   83843230 Oct 20 23:28 eleitorado_local_votacao_2026_SP.csv
 -rwxr-x--- 1 runner runner     336489 Oct 20 18:50 leiame.pdf
