@@ -21,7 +21,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from . import censo, config, entorno, tse
+from . import censo, config, contas, entorno, tse
+
+PRAZO_CONTAS_FINAL = {2026: dt.date(2026, 11, 3)}  # 1º turno; depois disso o TSE ainda leva dias para publicar
 
 NOMES_CARGO = {5: "Senador", 6: "Deputado federal", 7: "Deputado estadual", 8: "Deputado distrital"}
 NAO_ELEITOS = {5: 5, 6: 30, 7: 30, 8: 15}  # mais votados não eleitos que também ganham detalhe
@@ -189,6 +191,29 @@ def main(argv=None):
                                          t.get("SG_PARTIDO", [None] * len(t)),
                                          t.get("DS_SIT_TOT_TURNO", [None] * len(t)))]
 
+    # prestação de contas de campanha (falha aqui não derruba o resto)
+    info_contas = None
+    try:
+        tab, info = contas.carregar(a.ano, a.uf)
+        if tab is not None:
+            por = {(int(c), int(n)): r for c, n, r in zip(tab["CD_CARGO"], tab["NR_CANDIDATO"], tab.to_dict("records"))}
+            n_com = 0
+            for c in lista_cand:
+                r = por.get((c["cargo"], c["nr"]))
+                if r:
+                    c["contas"] = {"desp": round(float(r.get("despesas", 0)), 2), "rec": round(float(r.get("receitas", 0)), 2),
+                                   "pub": round(float(r.get("publico", 0)), 2)}
+                    n_com += 1
+            prazo = PRAZO_CONTAS_FINAL.get(a.ano)
+            final = prazo is not None and dt.date.today() > prazo + dt.timedelta(days=10)
+            info_contas = {**info, "situacao": "final" if final else "parcial",
+                           "prazo_final": prazo.isoformat() if prazo else None, "candidatos_com_contas": n_com}
+            log(f"   contas: {n_com} candidatos com prestação de contas ({info_contas['situacao']}, ref. {info.get('referencia')})")
+        else:
+            log(f"   contas: {info}")
+    except Exception as e:  # noqa: BLE001
+        log(f"   contas: ignoradas por erro: {e}")
+
     tem_limites = False
     try:
         lim = geo.limites(a.uf, setores)
@@ -205,6 +230,7 @@ def main(argv=None):
                             "validos_uf": int(validos.loc[validos["CD_CARGO"] == c, "validos"].sum())}
                    for c in cargos},
         "candidatos": lista_cand,
+        "contas": info_contas,
         "indicadores": [{"chave": k, "rotulo": r, "unidade": u, "casas": c} for k, r, u, c in INDICADORES],
         "niveis": {"raio": f"Entorno de {a.raio:.0f} m", "bairro": "Bairro do IBGE (ou distrito)", "setor": "Setor censitário"},
         "limites": tem_limites,
@@ -219,6 +245,7 @@ def main(argv=None):
             f"TSE, candidatos {a.ano} (consulta_cand)",
             "IBGE, Censo 2022, agregados por setores censitários e malha de setores",
             "IBGE, Censo 2022, rendimento do responsável por setor",
+            f"TSE, prestação de contas eleitorais de candidatos {a.ano}",
         ],
     }
     gravar(destino / "meta.json", meta, comprimir=False)

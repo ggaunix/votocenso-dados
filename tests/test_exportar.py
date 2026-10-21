@@ -37,6 +37,13 @@ def main():
         cc = tmp / "dados/cache/centroides_SP.csv"
         c0 = pd.read_csv(cc, dtype={"CD_SETOR": str})
         pd.concat([c0, c0.head(2)]).to_csv(cc, index=False)
+        ct = tmp / "dados/contas"; ct.mkdir()
+        pd.DataFrame([dict(DT_GERACAO="20/10/2026", CD_CARGO="6", NR_CANDIDATO="1111", VR_DESPESA_CONTRATADA="1.500,50"),
+                      dict(DT_GERACAO="20/10/2026", CD_CARGO="6", NR_CANDIDATO="1111", VR_DESPESA_CONTRATADA="499,50")]
+                     ).to_csv(ct / "despesas_contratadas_candidatos_2022_SP.csv", sep=";", index=False, encoding="latin-1")
+        pd.DataFrame([dict(DT_GERACAO="20/10/2026", CD_CARGO="6", NR_CANDIDATO="1111", DS_FONTE_RECEITA="Fundo Especial", VR_RECEITA="3000,00"),
+                      dict(DT_GERACAO="20/10/2026", CD_CARGO="6", NR_CANDIDATO="1111", DS_FONTE_RECEITA="Outros Recursos", VR_RECEITA="1000,00")]
+                     ).to_csv(ct / "receitas_candidatos_2022_SP.csv", sep=";", index=False, encoding="latin-1")
         config.DADOS, config.DADOS_TSE, config.DADOS_IBGE = tmp / "dados", tmp / "dados/tse", tmp / "dados/ibge"
         config.CACHE = tmp / "dados/cache"
         destino = Path(sys.argv[1]) if len(sys.argv) > 1 else tmp / "out"
@@ -56,6 +63,8 @@ def main():
         assert set(L["val"]) == {"5", "6", "7"}
         assert sum(L["val"]["6"]) == meta["cargos"]["6"]["validos_uf"]
         assert len(L["ind"]["raio"]["renda_media_responsavel"]) == 40
+        assert cand["6_1111"]["contas"] == {"desp": 2000.0, "rec": 4000.0, "pub": 3000.0}, cand["6_1111"].get("contas")
+        assert "contas" not in cand["6_2222"] and meta["contas"]["situacao"] in ("parcial", "final")
         print(json.dumps(meta["avisos"]), len(meta["candidatos"]), "candidatos")
         print("OK: exportador")
     finally:

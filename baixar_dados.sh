@@ -41,6 +41,14 @@ for ANO in "${ANOS[@]}"; do
     rm -f "$z"
   fi
 
+  # contas de campanha: sempre baixa de novo (mudam até a prestação final); fica fora do cache
+  CONTAS="$RAIZ/dados/contas"; mkdir -p "$CONTAS"; z="$CONTAS/contas_${ANO}.zip"; rm -f "$z"
+  if baixar "$U_TSE/prestacao_contas/prestacao_de_contas_eleitorais_candidatos_${ANO}.zip" "$z"; then
+    unzip -o -q "$z" "*_${ANO}_${UF}.csv" -d "$CONTAS" || echo "  contas: sem arquivos de $UF no zip" >&2
+    rm -f "$z"; find "$CONTAS" -mindepth 2 -name '*.csv' -exec mv -f {} "$CONTAS"/ \;
+    ls -la "$CONTAS"
+  else echo "  contas de campanha indisponíveis" >&2; fi
+
   z="$TSE/eleitorado_local_votacao_${ANO}.zip"
   if ls "$TSE"/eleitorado_local_votacao_"${ANO}"*.csv >/dev/null 2>&1; then echo "ok eleitorado_local_votacao $ANO"
   elif baixar "$U_TSE/eleitorado_locais_votacao/eleitorado_local_votacao_${ANO}.zip" "$z"; then

@@ -6,6 +6,9 @@ on:
     branches: [main]
     paths: ["alvos.txt", "votocenso/**", "baixar_dados.sh", ".github/workflows/processar.yml"]
   workflow_dispatch:
+  # toda segunda: atualiza as contas de campanha (mudam até a prestação final)
+  schedule:
+    - cron: "17 6 * * 1"
 
 permissions:
   contents: write
@@ -102,3 +105,29 @@ jobs:
           git add -f diagnostico/${{ matrix.ano }}_${{ matrix.uf }} || true
           git commit -m "diagnóstico (falha) ${{ matrix.uf }} ${{ matrix.ano }} [skip ci]" || exit 0
           for i in 1 2 3; do git pull --rebase && git push && break; sleep 10; done
+
+  site:
+    needs: processar
+    if: always() && needs.processar.result != 'cancelled'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: montar e publicar o site (GitHub Pages)
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git pull --rebase origin main
+          python portal/preparar.py portal_dados
+          python portal/montar_site.py portal _site
+          cd _site
+          git init -q -b gh-pages
+          git config user.name "votocenso-bot"
+          git config user.email "votocenso-bot@users.noreply.github.com"
+          git add -A
+          git commit -qm "site atualizado em $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -f "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}" gh-pages

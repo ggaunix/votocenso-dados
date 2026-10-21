@@ -126,12 +126,25 @@ select, input[type=search] { background: var(--folha); border: 1px solid var(--l
 .vazio { padding: 30px 10px; text-align: center; color: var(--tinta-3); }
 
 /* perfil */
-.perfil { width: 100%; border-collapse: collapse; font-size: 13px; }
-.perfil th { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--tinta-3); text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--linha); }
-.perfil th:first-child { text-align: left; }
-.perfil td { padding: 5px 6px; border-bottom: 1px solid var(--linha); text-align: right; white-space: nowrap; }
-.perfil td:first-child { text-align: left; white-space: normal; }
-.perfil td.barra { width: 34%; min-width: 110px; padding-inline: 4px; }
+.perfil-leg { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; font-size: 12px; color: var(--tinta-2); margin-bottom: 6px; }
+.perfil-leg i { display: inline-block; vertical-align: -1px; margin-right: 5px; }
+.perfil-leg .pt { width: 10px; height: 10px; border-radius: 50%; background: var(--carimbo); }
+.perfil-leg .tr { width: 3px; height: 13px; background: var(--tinta); }
+.perfil h4 { margin: 12px 0 2px; font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--tinta-3); }
+.perfil .ln { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(120px, 1.7fr) 112px; gap: 10px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--linha); font-size: 13px; }
+.perfil .rotulo-ind { min-width: 0; }
+.perfil .regua { position: relative; height: 22px; }
+.perfil .regua .eixo { position: absolute; left: 0; right: 0; top: 10px; height: 2px; background: var(--linha-2); border-radius: 1px; }
+.perfil .regua .ext { position: absolute; top: 14px; font: 10px/1 var(--f-dado); color: var(--tinta-3); }
+.perfil .regua .ext.a { left: 0; } .perfil .regua .ext.b { right: 0; }
+.perfil .regua .ele { position: absolute; z-index: 2; top: 0; width: 3px; height: 22px; margin-left: -1.5px; background: var(--tinta); border-radius: 1px; box-shadow: 0 0 0 1px var(--folha); }
+.perfil .regua .cand { position: absolute; z-index: 1; top: 5px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--carimbo); border: 2px solid var(--folha); }
+.perfil .val { text-align: right; font-family: var(--f-dado); font-variant-numeric: tabular-nums; }
+.perfil .val b { display: block; font-weight: 600; }
+.perfil .val span { font-size: 11.5px; color: var(--tinta-3); }
+.perfil .val span.mais { color: var(--carimbo); } .perfil .val span.menos { color: var(--frio); }
+.contas { position: relative; margin-top: 6px; font-size: 13.5px; color: var(--tinta-2); max-width: 75ch; }
+.contas b { color: var(--tinta); font-family: var(--f-dado); font-weight: 600; }
 .barra svg { display: block; width: 100%; height: 14px; }
 
 /* dispersão */
@@ -217,6 +230,7 @@ table.dados td.m { white-space: nowrap; }
     <div>
       <h2 id="c-nome"></h2>
       <div class="meta" id="c-meta"></div>
+      <div class="contas" id="c-contas"></div>
     </div>
     <div class="total"><b id="c-votos" class="num"></b><span id="c-votos-rot"></span></div>
   </div>
@@ -240,7 +254,8 @@ table.dados td.m { white-space: nowrap; }
     <div class="cartao">
       <h3>Perfil de onde vieram os votos</h3>
       <p class="expl" id="perfil-expl"></p>
-      <div class="rolagem"><table class="perfil" id="perfil"></table></div>
+      <div class="perfil-leg"><span><i class="pt"></i>média dos votos dele</span><span><i class="tr"></i>média do eleitorado</span><span>ao lado, a diferença para o eleitorado (p.p. = pontos percentuais)</span><span>régua: dos 10% de locais mais baixos aos 10% mais altos</span></div>
+      <div class="perfil" id="perfil"></div>
     </div>
   </div>
   <div class="cartao">
@@ -417,6 +432,7 @@ function montarFicha(c) {
   $("#c-nome").textContent = c.nome;
   $("#c-meta").innerHTML = `${esc(E.meta.cargos[E.cargo].nome)} · ${esc(c.partido || "sem partido")} · nº <span class="num">${c.nr}</span>${c.situacao ? ` · <span class="pilula ${el ? "eleito" : "nao"}">${el ? esc(c.situacao.toLowerCase()) : esc(c.situacao.toLowerCase())}</span>` : ""}`;
   $("#c-votos").textContent = fmt.format(c.votos);
+  desenharContas(c);
   const pos = E.meta.candidatos.filter(x => String(x.cargo) === E.cargo).findIndex(x => x.id === c.id) + 1;
   $("#c-votos-rot").textContent = `votos · ${pos}º mais votado · ${fmt1.format(100 * c.votos / E.meta.cargos[E.cargo].validos_uf)}% dos válidos`;
 
@@ -447,6 +463,31 @@ function montarFicha(c) {
 
   criarMapa();
   atualizar(true);
+}
+
+const fmtRc = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 });
+const fmtR2 = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function desenharContas(c) {
+  const alvo = $("#c-contas"), info = E.meta.contas;
+  if (!info) { alvo.hidden = true; return; }
+  alvo.hidden = false;
+  const ref = info.referencia ? ` até ${esc(info.referencia)}` : "";
+  const prazo = info.prazo_final ? new Date(info.prazo_final + "T12:00:00").toLocaleDateString("pt-BR") : "";
+  const situ = info.situacao === "parcial"
+    ? `parcial: a prestação final vence em ${prazo}`
+    : "prestação final";
+  const dica = `Valores declarados pela campanha ao TSE (prestação de contas). Despesas são as contratadas pela campanha. Dinheiro público é o que veio do Fundo Eleitoral (FEFC) e do Fundo Partidário, inclusive repassado pelo partido. ${info.situacao === "parcial" ? `Os números ainda são parciais: a prestação de contas final do 1º turno vence em ${prazo}, e este site atualiza toda segunda-feira.` : ""}`;
+  const k = c.contas;
+  if (!k) {
+    alvo.innerHTML = `Campanha: nenhuma prestação de contas publicada pelo TSE${ref} <span class="nota">(${situ})</span> <button type="button" class="ajuda" aria-label="O que é isso? ${esc(dica)}" data-dica="${esc(dica)}">?</button>`;
+    return;
+  }
+  const pctPub = k.rec ? ` (${fmt.format(Math.round(100 * k.pub / k.rec))}%)` : "";
+  const porVoto = k.desp && c.votos ? ` · <b>${fmtR2.format(k.desp / c.votos)}</b> por voto` : "";
+  alvo.innerHTML = `Campanha${ref}: <b>${fmtRc.format(k.desp)}</b> em despesas · <b>${fmtRc.format(k.rec)}</b> arrecadados, `
+    + `<b>${fmtRc.format(k.pub)}</b>${pctPub} de dinheiro público${porVoto} <span class="nota">(${situ})</span> `
+    + `<button type="button" class="ajuda" aria-label="O que é isso? ${esc(dica)}" data-dica="${esc(dica)}">?</button>`;
 }
 
 function filtro(i) { return E.mun === -1 || E.L.mun[i] === E.mun; }
@@ -591,26 +632,54 @@ function mediaPond(x, w, mascara) {
   return p ? s / p : null;
 }
 
+const GRUPOS_PERFIL = [
+  ["Renda e escolaridade", ["renda_media_responsavel", "pct_alfabetizados_15_mais"]],
+  ["Cor ou raça", ["pct_branca", "pct_preta_parda", "pct_preta", "pct_parda", "pct_amarela", "pct_indigena"]],
+  ["Idade", ["pct_0_14", "pct_15_24", "pct_25_39", "pct_40_59", "pct_60_mais"]],
+  ["Território", ["pct_pop_favela", "pct_pop_rural", "densidade_hab_km2"]],
+];
+
 function desenharPerfil() {
   const ind = E.L.ind[E.nivel] || {}, v = E.votosLocal, val = E.valLocal;
-  const temCoord = i => filtro(i) && E.L.lat[i] != null;
-  const linhas = E.meta.indicadores.filter(i => !PERFIL_FORA.has(i.chave) && ind[i.chave]).map(i => {
-    const a = mediaPond(ind[i.chave], v, temCoord), b = mediaPond(ind[i.chave], val, temCoord);
-    return { i, cand: a, ele: b, rel: a != null && b ? 100 * (a - b) / b : null };
-  });
-  const lim = Math.max(10, ...linhas.map(l => Math.abs(l.rel || 0)));
-  const onde = E.mun === -1 ? `da UF (${E.meta.uf})` : `de ${E.meta.municipios[E.mun]}`;
-  $("#perfil-expl").textContent = `Censo do nível "${E.meta.niveis[E.nivel]}" de cada local, em média ponderada pelos votos do candidato, comparada com a mesma média ponderada pelos votos válidos do cargo ${onde}.`;
-  const W = 200, meio = W / 2, esc_ = (meio - 2) / lim;
-  $("#perfil").innerHTML = `<thead><tr><th>Indicador</th><th>Eleitorado</th><th>Votos dele</th><th>Diferença relativa</th></tr></thead><tbody>` +
-    linhas.map(l => {
-      const r = l.rel || 0, w = Math.abs(r) * esc_, x = r >= 0 ? meio : meio - w;
-      const cor = r >= 0 ? "var(--carimbo)" : "var(--frio)";
-      return `<tr><td>${esc(l.i.rotulo)}</td><td class="num">${valor(l.i.chave, l.ele)}</td><td class="num"><b>${valor(l.i.chave, l.cand)}</b></td>
-        <td class="barra" title="${l.rel == null ? "" : (r >= 0 ? "+" : "") + fmt1.format(r) + "%"}"><svg viewBox="0 0 ${W} 14" preserveAspectRatio="none" aria-hidden="true">
-        <line x1="${meio}" x2="${meio}" y1="0" y2="14" stroke="var(--linha-2)" stroke-width="1"/>
-        <rect x="${x}" y="3" width="${Math.max(w, l.rel == null ? 0 : 1)}" height="8" fill="${cor}"/></svg></td></tr>`;
-    }).join("") + `</tbody><tfoot><tr><td></td><td></td><td></td><td class="nota" style="text-align:center">escala ±${fmt.format(Math.round(lim))}%</td></tr></tfoot>`;
+  const usa = i => filtro(i) && E.L.lat[i] != null;
+  const onde = E.mun === -1 ? `do estado (${E.meta.uf})` : `de ${E.meta.municipios[E.mun]}`;
+  $("#perfil-expl").textContent = `Para cada indicador do censo (nível "${E.meta.niveis[E.nivel]}"), a média dos locais de votação ponderada pelos votos dele, comparada com a média ponderada pelos votos válidos do cargo ${onde}.`;
+  let html = "";
+  for (const [grupo, chaves] of GRUPOS_PERFIL) {
+    const linhas = chaves.filter(k => ind[k]).map(k => {
+      const meta = E.meta.indicadores.find(i => i.chave === k) || { rotulo: k, unidade: "" };
+      const xs = [];
+      for (let i = 0; i < E.L.n; i++) if (usa(i) && val[i] > 0 && ind[k][i] != null) xs.push(ind[k][i]);
+      xs.sort((a, b) => a - b);
+      const q = f => xs[Math.floor(f * (xs.length - 1))];
+      let lo = q(0.1), hi = q(0.9);
+      if (!(hi - lo > 1e-6)) { lo = q(0); hi = q(0.99); }  // indicador quase sempre zero (rural, indígenas)
+      const cand = mediaPond(ind[k], v, usa), ele = mediaPond(ind[k], val, usa);
+      if (cand == null || ele == null || lo == null) return "";
+      const pos = x => Math.min(100, Math.max(0, hi > lo ? 100 * (x - lo) / (hi - lo) : 50));
+      const pct = meta.unidade === "%";
+      const d = pct ? cand - ele : (ele ? 100 * (cand - ele) / ele : 0);
+      const pequeno = pct ? Math.abs(d) < 0.5 : Math.abs(d) < 2;
+      const txt = pequeno ? "≈ eleitorado" : `${d > 0 ? "+" : "−"}${fmt1.format(Math.abs(d))}${pct ? " p.p." : "%"}`;
+      const dica = `${meta.rotulo}: média dos votos dele ${valor(k, cand)}; do eleitorado ${valor(k, ele)}. Nos locais ${onde}, 10% ficam abaixo de ${valor(k, lo)} e 10% acima de ${valor(k, hi)}.`;
+      return `<div class="ln" title="${esc(dica)}">
+        <span class="rotulo-ind">${esc(meta.rotulo)}</span>
+        <span class="regua" aria-hidden="true"><span class="eixo"></span>
+          <span class="ele" style="left:${pos(ele)}%"></span><span class="cand" style="left:${pos(cand)}%"></span>
+          <span class="ext a">${esc(curto(k, lo))}</span><span class="ext b">${esc(curto(k, hi))}</span></span>
+        <span class="val"><b>${valor(k, cand)}</b><span class="${pequeno ? "" : d > 0 ? "mais" : "menos"}">${txt}</span></span>
+      </div>`;
+    }).join("");
+    if (linhas) html += `<h4>${esc(grupo)}</h4>` + linhas;
+  }
+  $("#perfil").innerHTML = html || `<div class="vazio">Sem dados do censo para este recorte.</div>`;
+}
+
+function curto(k, x) {
+  const meta = E.meta.indicadores.find(i => i.chave === k) || {};
+  if (meta.unidade === "R$") return "R$ " + fmt.format(Math.round(x / 100) * 100);
+  if (meta.unidade === "%") return (x < 10 ? fmt1.format(x) : fmt.format(Math.round(x))) + "%";
+  return fmt.format(Math.round(x));
 }
 
 /* ---------------------------------------------------------------- dispersão */
