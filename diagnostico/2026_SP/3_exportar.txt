@@ -2,29 +2,8 @@ candidatos (consulta_cand)...
 votos por seção (passadas 1 e 2)...
 locais de votação...
 censo por setor...
-Traceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "/home/runner/work/votocenso-dados/votocenso-dados/votocenso/exportar.py", line 230, in <module>
-    main()
-  File "/home/runner/work/votocenso-dados/votocenso-dados/votocenso/exportar.py", line 125, in main
-    perfil = entorno.perfil_locais(locais, setores, centroides, contem, a.raio, NIVEIS)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/votocenso-dados/votocenso-dados/votocenso/entorno.py", line 39, in perfil_locais
-    exato = setor_contem.iloc[idx].map(pos_setor).values
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/pandas/core/series.py", line 4675, in map
-    new_values = self._map_values(func, na_action=na_action)
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/pandas/core/base.py", line 1020, in _map_values
-    return arr.map(mapper, na_action=na_action)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/pandas/core/arrays/base.py", line 2745, in map
-    return map_array(self, mapper, na_action=na_action)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/pandas/core/algorithms.py", line 1704, in map_array
-    indexer = mapper.index.get_indexer(arr)
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/pandas/core/indexes/base.py", line 3728, in get_indexer
-    raise InvalidIndexError(self._requires_unique_msg)
-pandas.errors.InvalidIndexError: Reindexing only valid with uniquely valued Index objects
+   malha: 301 polígonos extras de setores repetidos; dissolvendo
+montando arquivos...
+   locais.json: 11079 locais, 4.7 MB antes de comprimir
+pronto: /home/runner/work/votocenso-dados/votocenso-dados/portal_dados/2026_SP (231 candidatos detalhados)
+37M	portal_dados/2026_SP

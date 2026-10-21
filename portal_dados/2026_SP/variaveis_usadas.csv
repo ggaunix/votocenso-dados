@@ -1,0 +1,24 @@
+nome_no_pipeline,tema,codigo,rotulo_ibge
+pop,basico,V0001,Básico | Total de pessoas
+domicilios,basico,V0007,Básico | Total de Domicílios Particulares Ocupados (DPPO + DPIO)
+idade_00_04,demografia,V01031,Pessoas | Demografia | 0 a 4 anos
+idade_05_09,demografia,V01032,Pessoas | Demografia | 5 a 9 anos
+idade_10_14,demografia,V01033,Pessoas | Demografia | 10 a 14 anos
+idade_15_19,demografia,V01034,Pessoas | Demografia | 15 a 19 anos
+idade_20_24,demografia,V01035,Pessoas | Demografia | 20 a 24 anos
+idade_25_29,demografia,V01036,Pessoas | Demografia | 25 a 29 anos
+idade_30_39,demografia,V01037,Pessoas | Demografia | 30 a 39 anos
+idade_40_49,demografia,V01038,Pessoas | Demografia | 40 a 49 anos
+idade_50_59,demografia,V01039,Pessoas | Demografia | 50 a 59 anos
+idade_60_69,demografia,V01040,Pessoas | Demografia | 60 a 69 anos
+idade_70_mais,demografia,V01041,Pessoas | Demografia | 70 anos ou mais
+cor_branca,cor_ou_raca,V01317,Pessoas | Cor ou Raça | Cor ou raça é branca
+cor_preta,cor_ou_raca,V01318,Pessoas | Cor ou Raça | Cor ou raça é preta
+cor_amarela,cor_ou_raca,V01319,Pessoas | Cor ou Raça | Cor ou raça é amarela
+cor_parda,cor_ou_raca,V01320,Pessoas | Cor ou Raça | Cor ou raça é parda
+cor_indigena,cor_ou_raca,V01321,Pessoas | Cor ou Raça | Cor ou raça é indígena
+alfabetizados_15_mais,alfabetizacao,V00900,"Pessoas | Alfabetização | 15 anos ou mais, Morador sabe ler e escrever"
+analfabetos_15_mais,alfabetizacao,V00901,"Pessoas | Alfabetização | 15 anos ou mais, Morador não sabe ler e escrever"
+responsaveis_com_renda,renda,V06001,Renda do Responsável | Pessoas responsáveis em domicílios particulares permanentes ocupados
+renda_media_responsavel,renda,V06004,Renda do Responsável | Valor do rendimento nominal médio mensal das pessoas responsáveis com rendimentos por domicílios particulares permanentes ocupados
+renda_mediana_responsavel,renda,V06006,Renda do Responsável | Valor do rendimento nominal mediano mensal das pessoas responsáveis com rendimentos por domicílios particulares permanentes ocupados
