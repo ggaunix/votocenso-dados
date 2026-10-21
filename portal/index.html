@@ -330,6 +330,7 @@ function montarFontes() {
     <p><b>${esc(m.uf)} · eleições ${m.ano} · ${m.turno}º turno.</b> Processado em ${esc((m.gerado_em || "").replace("T", " "))} UTC.</p>
     <p>Os votos de cada seção vêm do TSE. O censo do entorno de cada local de votação vem do Censo 2022 do IBGE, em três níveis: o setor censitário onde fica o local, os setores num raio de ${fmt.format(m.raio_m)} m e o bairro do IBGE.</p>
     <p>${fmt.format(a.locais_sem_coordenada || 0)} de ${fmt.format(a.locais_total || 0)} locais vieram sem coordenada do TSE e ficam fora do mapa e do perfil. ${a.votos_sem_local ? fmt.format(a.votos_sem_local) + " votos de seções sem local identificado também ficam fora." : ""}</p>
+    ${m.cargos["5"] ? `<p>Senador: em ${m.ano} cada eleitor de ${esc(m.uf)} votou em dois candidatos. O % de um candidato num local é sobre o total de votos válidos para senador ali, que conta os dois votos de cada eleitor.</p>` : ""}
     <p>Percentuais do censo usam a soma das próprias categorias como denominador (células suprimidas pelo IBGE ficam de fora). Renda é a média do rendimento do responsável pelo domicílio, ponderada pelo número de responsáveis.</p>
     <ul>${(m.fontes || []).map(f => `<li>${esc(f)}</li>`).join("")}</ul>`;
 }
