@@ -56,19 +56,37 @@ jobs:
           key: dados-${{ matrix.uf }}-${{ matrix.ano }}-v1
 
       - name: baixar TSE e IBGE
-        run: ./baixar_dados.sh ${{ matrix.uf }} ${{ matrix.ano }}
+        run: |
+          mkdir -p diagnostico/${{ matrix.ano }}_${{ matrix.uf }}
+          set -o pipefail
+          ./baixar_dados.sh ${{ matrix.uf }} ${{ matrix.ano }} 2>&1 | tee diagnostico/${{ matrix.ano }}_${{ matrix.uf }}/1_download.txt
+          ls -la dados/tse dados/ibge 2>&1 | tee -a diagnostico/${{ matrix.ano }}_${{ matrix.uf }}/1_download.txt
 
       - name: conferir códigos do censo no dicionário
-        run: python -m votocenso.verificar
+        run: |
+          set -o pipefail
+          python -m votocenso.verificar 2>&1 | tee diagnostico/${{ matrix.ano }}_${{ matrix.uf }}/2_variaveis.txt
 
       - name: gerar dados do portal
-        run: python -m votocenso.exportar --ano ${{ matrix.ano }} --uf ${{ matrix.uf }}
+        run: |
+          set -o pipefail
+          python -m votocenso.exportar --ano ${{ matrix.ano }} --uf ${{ matrix.uf }} 2>&1 | tee diagnostico/${{ matrix.ano }}_${{ matrix.uf }}/3_exportar.txt
+          du -sh portal_dados/${{ matrix.ano }}_${{ matrix.uf }} portal_dados/${{ matrix.ano }}_${{ matrix.uf }}/* 2>&1 | tee -a diagnostico/${{ matrix.ano }}_${{ matrix.uf }}/3_exportar.txt
 
       - name: gravar no repositório
         run: |
           cp saida/variaveis_usadas.csv portal_dados/${{ matrix.ano }}_${{ matrix.uf }}/ || true
           git config user.name "votocenso-bot"
           git config user.email "votocenso-bot@users.noreply.github.com"
-          git add portal_dados/${{ matrix.ano }}_${{ matrix.uf }}
-          git commit -m "dados ${{ matrix.uf }} ${{ matrix.ano }}" || exit 0
+          git add portal_dados/${{ matrix.ano }}_${{ matrix.uf }} diagnostico
+          git commit -m "dados ${{ matrix.uf }} ${{ matrix.ano }} [skip ci]" || exit 0
+          for i in 1 2 3; do git pull --rebase && git push && break; sleep 10; done
+
+      - name: gravar diagnóstico mesmo se falhar
+        if: failure()
+        run: |
+          git config user.name "votocenso-bot"
+          git config user.email "votocenso-bot@users.noreply.github.com"
+          git add -f diagnostico/${{ matrix.ano }}_${{ matrix.uf }} || true
+          git commit -m "diagnóstico (falha) ${{ matrix.uf }} ${{ matrix.ano }} [skip ci]" || exit 0
           for i in 1 2 3; do git pull --rebase && git push && break; sleep 10; done
