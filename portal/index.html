@@ -434,8 +434,8 @@ async function abrirRecorte_(id) {
   const alvo = E.meta.candidatos.find(c => c.id === pedido && c.detalhe)
     || E.meta.candidatos.find(c => String(c.cargo) === E.cargo && c.detalhe);
   if (alvo) await abrirCandidato(alvo.id);
-  if (!$("#ranking").hidden) montarRanking();
   else $("#ficha").innerHTML = `<div class="vazio">Nenhum candidato com detalhe neste recorte.</div>`;
+  if (!$("#ranking").hidden) montarRanking();
 }
 
 function montarFontes() {
