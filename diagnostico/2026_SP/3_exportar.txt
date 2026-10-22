@@ -8,9 +8,14 @@ censo por setor...
 montando arquivos...
    censo municipal: 645 de 645 municípios
    locais.json: 11079 locais, 4.8 MB antes de comprimir
+   cargo 5: 15 registrados no consulta_cand, 15 com voto, 15 na lista
+   cargo 6: 1129 registrados no consulta_cand, 1066 com voto, 1129 na lista
+      sem voto, por situação do registro: {'(sem registro)': 63}
+   cargo 7: 1429 registrados no consulta_cand, 1350 com voto, 1429 na lista
+      sem voto, por situação do registro: {'(sem registro)': 79}
    despesas_contratadas_candidatos_2026_SP.csv: valor em VR_DESPESA_CONTRATADA; colunas usadas ['CD_CARGO', 'NR_CANDIDATO', 'DT_GERACAO', 'DT_DESPESA', 'VR_DESPESA_CONTRATADA']
    receitas_candidatos_2026_SP.csv: valor em VR_RECEITA; colunas usadas ['CD_CARGO', 'NR_CANDIDATO', 'DS_FONTE_RECEITA', 'DT_GERACAO', 'DT_RECEITA', 'VR_RECEITA']
    fontes de receita: {'OUTROS RECURSOS': 15029, 'FUNDO ESPECIAL': 5893, 'FUNDO PARTIDARIO': 5584, '#NULO': 363}
-   contas: 2328 candidatos com prestação de contas (parcial, ref. 21/10/2026)
+   contas: 2444 candidatos com prestação de contas (parcial, ref. 21/10/2026)
 pronto: /home/runner/work/votocenso-dados/votocenso-dados/portal_dados/2026_SP (1353 candidatos detalhados)
 65M	portal_dados/2026_SP
