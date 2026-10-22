@@ -196,8 +196,10 @@ def carregar_candidatos(ano: int, uf: str) -> pd.DataFrame:
     try:
         caminho = _achar(config.DADOS_TSE, f"consulta_cand_{ano}_{uf}*.csv")
     except FileNotFoundError:
-        return pd.DataFrame(columns=["CD_CARGO", "NR_CANDIDATO", "NM_URNA_CANDIDATO", "SG_PARTIDO", "DS_SIT_TOT_TURNO"])
-    cols = ["NR_TURNO", "SG_UF", "CD_CARGO", "NR_CANDIDATO", "NM_URNA_CANDIDATO", "SG_PARTIDO", "DS_SIT_TOT_TURNO"]
+        return pd.DataFrame(columns=["CD_CARGO", "NR_CANDIDATO", "NM_URNA_CANDIDATO", "SG_PARTIDO", "DS_SIT_TOT_TURNO",
+                                     "DS_SITUACAO_CANDIDATURA", "DS_DETALHE_SITUACAO_CAND"])
+    cols = ["NR_TURNO", "SG_UF", "CD_CARGO", "NR_CANDIDATO", "NM_URNA_CANDIDATO", "SG_PARTIDO", "DS_SIT_TOT_TURNO",
+            "DS_SITUACAO_CANDIDATURA", "DS_DETALHE_SITUACAO_CAND"]
     df = pd.concat(_blocos(caminho, cols, ["CD_CARGO", "NR_CANDIDATO"]), ignore_index=True)
     if "NR_TURNO" in df:
         df = df[df["NR_TURNO"] == "1"]

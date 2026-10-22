@@ -27,6 +27,8 @@ def main():
                  SG_PARTIDO="BBB", DS_SIT_TOT_TURNO="SUPLENTE", NR_CPF_CANDIDATO="000"),
             dict(NR_TURNO="1", SG_UF="SP", CD_CARGO="5", NR_CANDIDATO="1111", NM_URNA_CANDIDATO="SENADOR TESTE",
                  SG_PARTIDO="CCC", DS_SIT_TOT_TURNO="ELEITO", NR_CPF_CANDIDATO="000"),
+            dict(NR_TURNO="1", SG_UF="SP", CD_CARGO="6", NR_CANDIDATO="4444", NM_URNA_CANDIDATO="INDEFERIDO SEM VOTO",
+                 SG_PARTIDO="DDD", DS_SIT_TOT_TURNO="#NULO#", DS_DETALHE_SITUACAO_CAND="INDEFERIDO", NR_CPF_CANDIDATO="000"),
         ]).to_csv(tmp / "dados/tse/consulta_cand_2022_SP.csv", sep=";", index=False, encoding="latin-1")
 
         tse_dir = tmp / "dados/tse"
@@ -57,6 +59,7 @@ def main():
         assert cand["6_1111"]["partido"] == "AAA" and cand["6_1111"]["situacao"] == "ELEITO POR QP"
         assert cand["6_3333"]["detalhe"] is True  # não eleito mais votado entra
         assert meta["min_votos_mapa"] == 1000
+        assert cand["6_4444"]["votos"] == 0 and cand["6_4444"]["situacao"] == "INDEFERIDO" and not cand["6_4444"]["detalhe"]
         assert "NR_CPF" not in json.dumps(meta)
         assert L["n"] == 40 and len(L["lat"]) == 40 and L["lat"].count(None) == 2
         assert sum(c["v"]) == cand["6_1111"]["votos"] == sum(c["s_v"])

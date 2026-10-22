@@ -238,7 +238,7 @@ table.dados td.m { white-space: nowrap; }
       <button class="aba" data-sit="eleitos" aria-pressed="false">Eleitos</button>
       <button class="aba" data-sit="nao" aria-pressed="false">Não eleitos</button>
     </div>
-    <label class="filtro-lista"><input type="checkbox" id="so-detalhe" checked> <span id="rot-detalhe">Só candidatos com mapa (eleitos e mais votados)</span></label>
+    <label class="filtro-lista"><input type="checkbox" id="so-detalhe"> <span id="rot-detalhe">Só candidatos com mapa (eleitos e mais votados)</span></label>
     <ul class="cands" id="cands"></ul>
     <p class="nota" id="nota-lista"></p>
   </aside>
@@ -258,15 +258,15 @@ table.dados td.m { white-space: nowrap; }
   <div class="rk-filtros">
     <div class="abas" id="rk-cargo" role="group" aria-label="Cargo"></div>
     <div class="abas" id="rk-sit" role="group" aria-label="Situação">
-      <button class="aba" data-sit="todos" aria-pressed="false">Todos</button>
-      <button class="aba" data-sit="eleitos" aria-pressed="true">Eleitos</button>
+      <button class="aba" data-sit="todos" aria-pressed="true">Todos</button>
+      <button class="aba" data-sit="eleitos" aria-pressed="false">Eleitos</button>
       <button class="aba" data-sit="nao" aria-pressed="false">Não eleitos</button>
     </div>
     <label><span class="rotulo">Partido</span> <select id="rk-partido"><option value="">Todos</option></select></label>
-    <label><span class="rotulo">Mínimo de votos</span> <select id="rk-min"><option value="0">Sem mínimo</option><option value="1000">1.000</option><option value="10000" selected>10.000</option><option value="50000">50.000</option></select></label>
+    <label><span class="rotulo">Mínimo de votos</span> <select id="rk-min"><option value="0" selected>Sem mínimo</option><option value="1000">1.000</option><option value="10000">10.000</option><option value="50000">50.000</option></select></label>
     <label><span class="rotulo">Ordenar por</span> <select id="rk-ord">
-      <option value="porvoto">Maior gasto por voto</option><option value="porvoto_asc">Menor gasto por voto</option>
-      <option value="desp">Maior gasto total</option><option value="pub">Mais dinheiro público</option>
+      <option value="desp">Maior gasto total</option>
+      <option value="porvoto">Maior gasto por voto</option><option value="porvoto_asc">Menor gasto por voto</option><option value="pub">Mais dinheiro público</option>
       <option value="pctpub">Maior % de dinheiro público</option><option value="votos">Mais votos</option></select></label>
     <button class="botao so-baixar" id="rk-csv" hidden>Baixar CSV</button>
   </div>
@@ -459,14 +459,16 @@ function desenharLista() {
   const vis = filtrados.slice(0, 3000);
   $("#cands").innerHTML = vis.map(c => {
     const el = /^ELEITO/i.test(c.situacao);
-    return `<li class="cand${c.detalhe ? "" : " sem-detalhe"}" data-id="${c.id}" tabindex="${c.detalhe ? 0 : -1}" aria-current="${c.id === E.cand}">
+    const semMapa = !c.detalhe ? (c.votos ? `Sem mapa: menos de ${fmt.format(E.meta.min_votos_mapa || 1000)} votos` : "Sem votos válidos") : "";
+    return `<li class="cand${c.detalhe ? "" : " sem-detalhe"}" data-id="${c.id}" tabindex="${c.detalhe ? 0 : -1}" aria-current="${c.id === E.cand}"${semMapa ? ` title="${esc(semMapa)}"` : ""}>
       <span class="nome">${esc(c.nome)}</span>
       <span class="votos num">${fmt.format(c.votos)}</span>
       <span class="sub">${q && String(c.cargo) !== E.cargo ? esc(E.meta.cargos[c.cargo].nome) + " · " : ""}${esc(c.partido || "sem partido")} · ${c.nr}${c.situacao ? ` · <span class="pilula ${el ? "eleito" : "nao"}">${el ? "eleito" : esc(c.situacao.toLowerCase())}</span>` : ""}</span>
     </li>`;
   }).join("") || `<li class="vazio">Nenhum candidato encontrado.</li>`;
-  $("#nota-lista").textContent = filtrados.length > vis.length
-    ? `Mostrando ${vis.length} de ${fmt.format(filtrados.length)}. Refine a busca.` : `${fmt.format(filtrados.length)} candidatos.`;
+  const comMapa = filtrados.filter(c => c.detalhe).length, semVoto = filtrados.filter(c => !c.votos).length;
+  $("#nota-lista").textContent = (filtrados.length > vis.length ? `Mostrando ${vis.length} de ${fmt.format(filtrados.length)}. ` : `${fmt.format(filtrados.length)} candidatos`)
+    + ` · ${fmt.format(comMapa)} com mapa${semVoto ? ` · ${fmt.format(semVoto)} sem voto válido (indeferidos, renúncias etc.)` : ""}. Os em cinza não têm mapa.`;
 }
 
 /* ---------------------------------------------------------------- candidato */
@@ -981,7 +983,7 @@ async function exportarCSV() {
 }
 
 /* ---------------------------------------------------------------- ranking de campanha */
-E.rk = { cargo: "6", sit: "eleitos", partido: "", min: 10000, ord: { col: "porvoto", dir: -1 }, pag: 0 };
+E.rk = { cargo: "6", sit: "todos", partido: "", min: 0, ord: { col: "desp", dir: -1 }, pag: 0 };
 const RK_ORD = { porvoto: ["porvoto", -1], porvoto_asc: ["porvoto", 1], desp: ["desp", -1], pub: ["pub", -1], pctpub: ["pctpub", -1], votos: ["votos", -1] };
 
 function mostrarVisao(v) {
@@ -1057,7 +1059,8 @@ function desenharRanking() {
   ];
   $("#rk-tabela").innerHTML = `<thead><tr>${cols.map(c => `<th class="${c.n ? "n" : ""}" ${c.sem ? "" : `data-k="${c.k}"`} ${c.k === col ? `aria-sort="${dir > 0 ? "ascending" : "descending"}"` : ""}>${esc(c.t)}${c.k === col ? (dir > 0 ? " ↑" : " ↓") : ""}</th>`).join("")}</tr></thead>
     <tbody>${vis.map((r, j) => `<tr>${cols.map(c => `<td class="${c.n ? "n num" : ""}">${c.f(r, j)}</td>`).join("")}</tr>`).join("") || `<tr><td class="vazio" colspan="${cols.length}">Nenhum candidato com esse filtro.</td></tr>`}</tbody>`;
-  $("#rk-info").textContent = `${fmt.format(linhas.length)} candidatos · página ${R.pag + 1} de ${paginas}`;
+  $("#rk-info").textContent = `${fmt.format(linhas.length)} candidatos · página ${R.pag + 1} de ${paginas}`
+    + (col === "porvoto" && R.min < 10000 ? " · Dica: com poucos votos o gasto por voto dispara; use o mínimo de 10.000 votos para comparar campanhas parecidas." : "");
   $("#rk-ant").disabled = R.pag === 0; $("#rk-prox").disabled = R.pag >= paginas - 1;
   $("#rk-csv").hidden = !podeBaixar();
   E.rkLinhas = linhas;

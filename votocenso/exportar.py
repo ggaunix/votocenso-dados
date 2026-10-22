@@ -11,6 +11,7 @@ Uso: python -m votocenso.exportar --ano 2022 --uf SP
 from __future__ import annotations
 
 import argparse
+import collections
 import datetime as dt
 import gzip
 import json
@@ -193,19 +194,38 @@ def main(argv=None):
             "s_v": lista(g["QT_VOTOS"]), "s_val": lista(g["validos"]),
         })
 
-    t = totais[totais["NR_VOTAVEL"] >= 100].merge(
-        cands, left_on=["CD_CARGO", "NR_VOTAVEL"], right_on=["CD_CARGO", "NR_CANDIDATO"], how="left")
+    # lista completa: quem teve voto (votacao_secao) + todos os registrados no consulta_cand,
+    # inclusive indeferidos, renúncias e quem ficou com zero voto
+    comvoto = totais[totais["NR_VOTAVEL"] >= 100].rename(columns={"NR_VOTAVEL": "NR_CANDIDATO"})
+    reg = cands[cands["CD_CARGO"].isin(cargos)] if len(cands) else cands
+    t = comvoto.merge(reg, on=["CD_CARGO", "NR_CANDIDATO"], how="outer")
+    t["votos"] = t["votos"].fillna(0).astype(int)
     t = t.sort_values(["CD_CARGO", "votos"], ascending=[True, False])
-    lista_cand = [{
-        "id": f"{c}_{n}", "cargo": int(c), "nr": int(n),
-        "nome": (u if isinstance(u, str) and u else nm),
-        "partido": pt if isinstance(pt, str) else "",
-        "situacao": s if isinstance(s, str) and s != "#NULO#" else "",
-        "votos": int(vt), "detalhe": (int(c), int(n)) in escolhidos,
-    } for c, n, vt, nm, u, pt, s in zip(t["CD_CARGO"], t["NR_VOTAVEL"], t["votos"], t["NM_VOTAVEL"],
-                                         t.get("NM_URNA_CANDIDATO", [None] * len(t)),
-                                         t.get("SG_PARTIDO", [None] * len(t)),
-                                         t.get("DS_SIT_TOT_TURNO", [None] * len(t)))]
+
+    def texto(x):
+        return x.strip() if isinstance(x, str) and x.strip() and x.strip().upper() not in ("#NULO#", "#NULO", "#NE#", "NAN") else ""
+
+    lista_cand = []
+    for r in t.to_dict("records"):
+        c, n = int(r["CD_CARGO"]), int(r["NR_CANDIDATO"])
+        final, registro, apto = texto(r.get("DS_SIT_TOT_TURNO")), texto(r.get("DS_DETALHE_SITUACAO_CAND")), texto(r.get("DS_SITUACAO_CANDIDATURA"))
+        lista_cand.append({
+            "id": f"{c}_{n}", "cargo": c, "nr": n,
+            "nome": texto(r.get("NM_URNA_CANDIDATO")) or texto(r.get("NM_VOTAVEL")) or str(n),
+            "partido": texto(r.get("SG_PARTIDO")),
+            # situação final do turno; sem ela (indeferido, renúncia...), a situação do registro
+            "situacao": final or registro or apto,
+            "registro": registro,
+            "votos": int(r["votos"]), "detalhe": (c, n) in escolhidos,
+        })
+    for cargo in cargos:
+        reg_c = int((reg["CD_CARGO"] == cargo).sum()) if len(reg) else 0
+        vot_c = int((comvoto["CD_CARGO"] == cargo).sum())
+        tot_c = sum(1 for x in lista_cand if x["cargo"] == cargo)
+        log(f"   cargo {cargo}: {reg_c} registrados no consulta_cand, {vot_c} com voto, {tot_c} na lista")
+        fora = collections.Counter(x["registro"] or "(sem registro)" for x in lista_cand if x["cargo"] == cargo and x["votos"] == 0)
+        if fora:
+            log(f"      sem voto, por situação do registro: {dict(fora.most_common(8))}")
 
     # prestação de contas de campanha (falha aqui não derruba o resto)
     info_contas = None
