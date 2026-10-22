@@ -1,6 +1,7 @@
 """Leitura dos arquivos do TSE: votação por seção e eleitorado por local de votação."""
 from __future__ import annotations
 
+import sys
 import unicodedata
 from pathlib import Path
 
@@ -198,9 +199,13 @@ def carregar_candidatos(ano: int, uf: str) -> pd.DataFrame:
     except FileNotFoundError:
         return pd.DataFrame(columns=["CD_CARGO", "NR_CANDIDATO", "NM_URNA_CANDIDATO", "SG_PARTIDO", "DS_SIT_TOT_TURNO",
                                      "DS_SITUACAO_CANDIDATURA", "DS_DETALHE_SITUACAO_CAND"])
-    cols = ["NR_TURNO", "SG_UF", "CD_CARGO", "NR_CANDIDATO", "NM_URNA_CANDIDATO", "SG_PARTIDO", "DS_SIT_TOT_TURNO",
-            "DS_SITUACAO_CANDIDATURA", "DS_DETALHE_SITUACAO_CAND"]
+    cab = pd.read_csv(caminho, sep=";", encoding="latin-1", nrows=0).columns.tolist()
+    situacoes = [c for c in cab if c.startswith(("DS_SIT", "DS_DETALHE"))]
+    print(f"   consulta_cand: colunas de situação {situacoes}", file=sys.stderr, flush=True)
+    cols = ["NR_TURNO", "SG_UF", "CD_CARGO", "NR_CANDIDATO", "NM_URNA_CANDIDATO", "SG_PARTIDO"] + situacoes
     df = pd.concat(_blocos(caminho, cols, ["CD_CARGO", "NR_CANDIDATO"]), ignore_index=True)
+    for c in situacoes:
+        print(f"      {c}: {df[c].value_counts().head(8).to_dict()}", file=sys.stderr, flush=True)
     if "NR_TURNO" in df:
         df = df[df["NR_TURNO"] == "1"]
     df["CD_CARGO"] = _int(df["CD_CARGO"])

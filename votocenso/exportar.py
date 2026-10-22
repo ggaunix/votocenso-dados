@@ -203,12 +203,16 @@ def main(argv=None):
     t = t.sort_values(["CD_CARGO", "votos"], ascending=[True, False])
 
     def texto(x):
-        return x.strip() if isinstance(x, str) and x.strip() and x.strip().upper() not in ("#NULO#", "#NULO", "#NE#", "NAN") else ""
+        return x.strip() if isinstance(x, str) and x.strip() and x.strip().upper() not in ("#NULO#", "#NULO", "#NE#", "#NE", "NAN", "NÃO SE APLICA") else ""
 
     lista_cand = []
     for r in t.to_dict("records"):
         c, n = int(r["CD_CARGO"]), int(r["NR_CANDIDATO"])
-        final, registro, apto = texto(r.get("DS_SIT_TOT_TURNO")), texto(r.get("DS_DETALHE_SITUACAO_CAND")), texto(r.get("DS_SITUACAO_CANDIDATURA"))
+        final = texto(r.get("DS_SIT_TOT_TURNO"))
+        registro = next((texto(r.get(k)) for k in r if isinstance(k, str) and k.startswith("DS_DETALHE") and texto(r.get(k))), "")
+        apto = next((texto(r.get(k)) for k in ("DS_SITUACAO_CANDIDATURA", "DS_SIT_CANDIDATURA", "DS_SITUACAO_CANDIDATO")
+                     if texto(r.get(k))), "")
+        registro = registro or (apto if apto.upper() not in ("APTO", "") else "")
         lista_cand.append({
             "id": f"{c}_{n}", "cargo": c, "nr": n,
             "nome": texto(r.get("NM_URNA_CANDIDATO")) or texto(r.get("NM_VOTAVEL")) or str(n),
