@@ -3,10 +3,10 @@ ok consulta_cand 2026 SP
 baixando contas_2026.zip
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0 20  196M   20 40.0M    0     0  45.5M      0  0:00:04 --:--:--  0:00:04 45.5M 57  196M   57  112M    0     0  59.3M      0  0:00:03  0:00:01  0:00:02 59.3M 90  196M   90  178M    0     0  61.6M      0  0:00:03  0:00:02  0:00:01 61.6M100  196M  100  196M    0     0  62.4M      0  0:00:03  0:00:03 --:--:-- 62.5M
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0 15  196M   15 29.7M    0     0  44.2M      0  0:00:04 --:--:--  0:00:04 44.2M 94  196M   94  185M    0     0   110M      0  0:00:01  0:00:01 --:--:--  110M100  196M  100  196M    0     0   112M      0  0:00:01  0:00:01 --:--:--  112M
 total 172768
-drwxr-xr-x 2 runner runner     4096 Oct 22 05:46 .
-drwxr-xr-x 5 runner runner     4096 Oct 22 05:46 ..
+drwxr-xr-x 2 runner runner     4096 Oct 22 05:54 .
+drwxr-xr-x 5 runner runner     4096 Oct 22 05:54 ..
 -rw-rw-r-- 1 runner runner 98745170 Oct 21 07:10 despesas_contratadas_candidatos_2026_SP.csv
 -rw-rw-r-- 1 runner runner 48336971 Oct 21 07:13 despesas_pagas_candidatos_2026_SP.csv
 -rw-rw-r-- 1 runner runner 18996108 Oct 21 07:11 receitas_candidatos_2026_SP.csv
@@ -16,7 +16,7 @@ ok (já existe) SP_setores_CD2022.gpkg
 baixando Agregados_por_setores_basico_BR_20260520.zip
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  1 14.7M    1  273k    0     0   293k      0  0:00:51 --:--:--  0:00:51  292k100 14.7M  100 14.7M    0     0  9075k      0  0:00:01  0:00:01 --:--:-- 9081k
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0 14.7M    0 16384    0     0  20512      0  0:12:31 --:--:--  0:12:31 20505 17 14.7M   17 2680k    0     0  1523k      0  0:00:09  0:00:01  0:00:08 1522k100 14.7M  100 14.7M    0     0  6745k      0  0:00:02  0:00:02 --:--:-- 6745k
 ok Agregados_por_setores_demografia_BR
 ok Agregados_por_setores_cor_ou_raca_BR
 ok Agregados_por_setores_alfabetizacao_BR
@@ -25,9 +25,9 @@ ok (já existe) dicionario_agregados_setores.xlsx
 ok (já existe) dicionario_renda_responsavel.xlsx
 feito. Agora: python -m votocenso.verificar
 dados/ibge:
-total 1346988
-drwxr-xr-x 2 runner runner      4096 Oct 22 05:46 .
-drwxr-xr-x 5 runner runner      4096 Oct 22 05:46 ..
+total 1346992
+drwxr-xr-x 2 runner runner      4096 Oct 22 05:54 .
+drwxr-xr-x 5 runner runner      4096 Oct 22 05:54 ..
 -rw-r--r-- 1 runner runner 735110705 Nov 12  2024 Agregados_por_setores_alfabetizacao_BR.csv
 -rw-r--r-- 1 runner runner 140970380 May  8 12:53 Agregados_por_setores_basico_BR.csv
 -rw-r--r-- 1 runner runner 201444000 Nov 12  2024 Agregados_por_setores_cor_ou_raca_BR.csv
@@ -40,7 +40,7 @@ drwxr-xr-x 5 runner runner      4096 Oct 22 05:46 ..
 dados/tse:
 total 4921556
 drwxr-xr-x 2 runner runner       4096 Oct 21 09:52 .
-drwxr-xr-x 5 runner runner       4096 Oct 22 05:46 ..
+drwxr-xr-x 5 runner runner       4096 Oct 22 05:54 ..
 -rw-r--r-- 1 runner runner    1441082 Oct 21 08:34 consulta_cand_2026_SP.csv
 -rw-r--r-- 1 runner runner   83843230 Oct 20 23:28 eleitorado_local_votacao_2026_SP.csv
 -rwxr-x--- 1 runner runner     336489 Oct 20 18:50 leiame.pdf
