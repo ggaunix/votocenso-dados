@@ -167,6 +167,13 @@ table.dados td .sem { color: var(--tinta-3); }
 .tab-topo h3 { margin: 0; }
 .ordena { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 table.dados th::after { content: " ⇅"; color: var(--linha-2); }
+table.dados th .ajuda { position: relative; margin-left: 3px; vertical-align: 0; }
+table.dados th .ajuda::after { top: calc(100% + 6px); width: 270px; white-space: normal; text-transform: none; letter-spacing: 0; font-weight: 400; }
+table.dados th.n .ajuda::after { left: auto; right: -6px; }
+table.dados th:not(.n) .ajuda::after { left: -6px; right: auto; }
+.rolagem { padding-bottom: 2px; }
+table.dados td .neg { color: var(--frio); }
+table.dados td .pos { color: var(--carimbo); }
 table.dados th[aria-sort]::after { content: ""; }
 .rolagem { overflow-x: auto; }
 table.dados { border-collapse: collapse; width: 100%; font-size: 13px; }
@@ -267,7 +274,7 @@ table.dados td.m { white-space: nowrap; }
     <label><span class="rotulo">Ordenar por</span> <select id="rk-ord">
       <option value="desp">Maior gasto total</option>
       <option value="porvoto">Maior gasto por voto</option><option value="porvoto_asc">Menor gasto por voto</option><option value="pub">Mais dinheiro público</option>
-      <option value="pctpub">Maior % de dinheiro público</option><option value="votos">Mais votos</option></select></label>
+      <option value="pctpub">Maior % de dinheiro público</option><option value="saldo">Maior saldo (arrecadado − gasto)</option><option value="saldo_asc">Maior dívida (gasto acima do arrecadado)</option><option value="votos">Mais votos</option></select></label>
     <button class="botao so-baixar" id="rk-csv" hidden>Baixar CSV</button>
   </div>
   <div class="numeros" id="rk-resumo"></div>
@@ -450,6 +457,7 @@ function montarFontes() {
 }
 
 /* ---------------------------------------------------------------- lista */
+const btnAjuda = d => d ? ` <button type="button" class="ajuda" aria-label="O que é isso? ${esc(d)}" data-dica="${esc(d)}">?</button>` : "";
 const DICA_SEM_VOTO = "O TSE registrou esta candidatura, mas não há voto válido para ela. O arquivo de candidatos do TSE não informa o motivo; em geral são candidaturas indeferidas (os votos dados a elas são anulados) ou renúncias.";
 function pilulaSituacao(c) {
   if (!c.votos && !c.situacao) return `<span class="pilula nao" title="${esc(DICA_SEM_VOTO)}">sem voto válido</span>`;
@@ -902,15 +910,15 @@ function colunasTabela() {
   const cens = COLUNAS_TAB.map(k => ({ k, t: rotuloInd(k), n: true, f: x => valor(k, x) }));
   const nu = x => fmt.format(x), pc = x => x == null ? "–" : fmt1.format(x) + "%";
   if (E.tab === "secoes") return [{ k: "mun", t: "Município", c: "m" }, { k: "zona", t: "Zona", n: true, f: x => pad(x, 4) }, { k: "secao", t: "Seção", n: true, f: x => pad(x, 4) },
-    { k: "local", t: "Local de votação", c: "t" }, { k: "bairro", t: "Bairro" }, { k: "votos", t: "Votos", n: true, f: nu }, { k: "val", t: "Válidos", n: true, f: nu }, { k: "pct", t: "% válidos", n: true, f: pc }, ...cens];
+    { k: "local", t: "Local de votação", c: "t" }, { k: "bairro", t: "Bairro" }, { k: "votos", t: "Votos", n: true, f: nu }, { k: "val", t: "Válidos", n: true, f: nu, d: "Votos válidos para o cargo (sem brancos e nulos), somando todos os candidatos e legendas." }, { k: "pct", t: "% válidos", n: true, f: pc, d: "Votos dele ÷ votos válidos para o cargo naquela linha." }, ...cens];
   if (E.tab === "locais") return [{ k: "mun", t: "Município", c: "m" }, { k: "zona", t: "Zona", n: true, f: x => pad(x, 4) }, { k: "local", t: "Local de votação", c: "t" },
-    { k: "end", t: "Endereço", c: "t" }, { k: "bairro", t: "Bairro" }, { k: "votos", t: "Votos", n: true, f: nu }, { k: "val", t: "Válidos", n: true, f: nu }, { k: "pct", t: "% válidos", n: true, f: pc }, { k: "eleit", t: "Eleitores", n: true, f: nu }, ...cens];
+    { k: "end", t: "Endereço", c: "t" }, { k: "bairro", t: "Bairro" }, { k: "votos", t: "Votos", n: true, f: nu }, { k: "val", t: "Válidos", n: true, f: nu, d: "Votos válidos para o cargo (sem brancos e nulos), somando todos os candidatos e legendas." }, { k: "pct", t: "% válidos", n: true, f: pc, d: "Votos dele ÷ votos válidos para o cargo naquela linha." }, { k: "eleit", t: "Eleitores", n: true, f: nu, d: "Eleitores aptos inscritos no local de votação." }, ...cens];
   if (E.tab === "municipios") return [{ k: "mun", t: "Município", c: "m" }, { k: "locais", t: "Locais com voto", n: true, f: nu }, { k: "votos", t: "Votos", n: true, f: nu },
-    { k: "val", t: "Válidos", n: true, f: nu }, { k: "pct", t: "% válidos", n: true, f: pc }, { k: "fatia", t: "% dos votos dele", n: true, f: pc },
-    { k: "peso", t: "% dos válidos do estado", n: true, f: pc }, { k: "indice", t: "Força relativa", n: true, f: x => x == null ? "–" : fmt1.format(x) + "×" },
+    { k: "val", t: "Válidos", n: true, f: nu, d: "Votos válidos para o cargo (sem brancos e nulos), somando todos os candidatos e legendas." }, { k: "pct", t: "% válidos", n: true, f: pc, d: "Votos dele ÷ votos válidos para o cargo naquela linha." }, { k: "fatia", t: "% dos votos dele", n: true, f: pc, d: "Quanto do total de votos do candidato veio deste município." },
+    { k: "peso", t: "% dos válidos do estado", n: true, f: pc, d: "Quanto este município pesa nos votos válidos do cargo no estado inteiro." }, { k: "indice", t: "Força relativa", n: true, f: x => x == null ? "–" : fmt1.format(x) + "×", d: "% dos votos dele ÷ % dos válidos do estado. 1× = proporcional ao tamanho do município; 2× = ele foi duas vezes mais forte ali do que na média do estado." },
     ...COLUNAS_TAB.map(k => ({ k, t: rotuloInd(k), n: true, f: x => valor(k, x) }))];
   return [{ k: "mun", t: "Município", c: "m" }, { k: "bairro", t: "Bairro", c: "t" }, { k: "locais", t: "Locais com voto", n: true, f: nu }, { k: "votos", t: "Votos", n: true, f: nu },
-    { k: "val", t: "Válidos", n: true, f: nu }, { k: "pct", t: "% válidos", n: true, f: pc }, ...COLUNAS_TAB.map(k => ({ k, t: rotuloInd(k), n: true, f: x => valor(k, x) }))];
+    { k: "val", t: "Válidos", n: true, f: nu, d: "Votos válidos para o cargo (sem brancos e nulos), somando todos os candidatos e legendas." }, { k: "pct", t: "% válidos", n: true, f: pc, d: "Votos dele ÷ votos válidos para o cargo naquela linha." }, ...COLUNAS_TAB.map(k => ({ k, t: rotuloInd(k), n: true, f: x => valor(k, x) }))];
 }
 
 const MIN_VALIDOS_TAB = { secoes: 50, locais: MIN_VALIDOS_PCT, bairros: 1000, municipios: 1000 };
@@ -942,9 +950,10 @@ function desenharTabela() {
   E.pag = Math.min(Math.max(0, E.pag), paginas - 1);
   const vis = linhas.slice(E.pag * POR, E.pag * POR + POR);
   const nivelNota = E.tab === "bairros" ? "Bairro (IBGE)" : E.tab === "municipios" ? "Município inteiro (IBGE)" : E.meta.niveis[E.nivel];
-  $("#tabela").innerHTML = `<thead><tr>${cols.map(c => `<th class="${c.n ? "n" : ""}" data-k="${c.k}" ${c.k === col ? `aria-sort="${dir > 0 ? "ascending" : "descending"}"` : ""} title="${COLUNAS_TAB.includes(c.k) ? "Censo: " + esc(nivelNota) : ""}">${esc(c.t)}${c.k === col ? (dir > 0 ? " ↑" : " ↓") : ""}</th>`).join("")}</tr></thead>
+  $("#tabela").innerHTML = `<thead><tr>${cols.map(c => `<th class="${c.n ? "n" : ""}" data-k="${c.k}" ${c.k === col ? `aria-sort="${dir > 0 ? "ascending" : "descending"}"` : ""} title="${COLUNAS_TAB.includes(c.k) ? "Censo: " + esc(nivelNota) : ""}">${esc(c.t)}${c.k === col ? (dir > 0 ? " ↑" : " ↓") : ""}${btnAjuda(c.d)}</th>`).join("")}</tr></thead>
     <tbody>${vis.map(r => `<tr>${cols.map(c => `<td class="${c.n ? "n" : ""} ${c.c || ""} ${c.n ? "num" : ""}">${c.f ? c.f(r[c.k]) : esc(r[c.k])}</td>`).join("")}</tr>`).join("") || `<tr><td class="vazio" colspan="${cols.length}">Nada para mostrar com este filtro.</td></tr>`}</tbody>`;
   $("#tabela thead").addEventListener("click", e => {
+    if (e.target.closest(".ajuda")) return;
     const th = e.target.closest("th"); if (!th) return;
     const k = th.dataset.k; E.ord = { col: k, dir: E.ord.col === k ? -E.ord.dir : (["mun", "local", "bairro", "end"].includes(k) ? 1 : -1) }; E.pag = 0; desenharTabela();
   });
@@ -992,7 +1001,7 @@ async function exportarCSV() {
 
 /* ---------------------------------------------------------------- ranking de campanha */
 E.rk = { cargo: "6", sit: "todos", partido: "", min: 0, ord: { col: "desp", dir: -1 }, pag: 0 };
-const RK_ORD = { porvoto: ["porvoto", -1], porvoto_asc: ["porvoto", 1], desp: ["desp", -1], pub: ["pub", -1], pctpub: ["pctpub", -1], votos: ["votos", -1] };
+const RK_ORD = { porvoto: ["porvoto", -1], porvoto_asc: ["porvoto", 1], desp: ["desp", -1], pub: ["pub", -1], pctpub: ["pctpub", -1], saldo: ["saldo", -1], saldo_asc: ["saldo", 1], votos: ["votos", -1] };
 
 function mostrarVisao(v) {
   const rk = v === "ranking";
@@ -1010,7 +1019,8 @@ function linhasRanking() {
       const k = c.contas;
       return { id: c.id, nome: c.nome, partido: c.partido, situacao: c.situacao, eleito: eleito(c), detalhe: c.detalhe, votos: c.votos,
         desp: k ? k.desp : null, rec: k ? k.rec : null, pub: k ? k.pub : null,
-        pctpub: k && k.rec ? 100 * k.pub / k.rec : null, porvoto: k && c.votos ? k.desp / c.votos : null, pubvoto: k && c.votos ? k.pub / c.votos : null };
+        pctpub: k && k.rec ? 100 * k.pub / k.rec : null, porvoto: k && c.votos ? k.desp / c.votos : null, pubvoto: k && c.votos ? k.pub / c.votos : null,
+        saldo: k ? k.rec - k.desp : null };
     });
 }
 
@@ -1057,15 +1067,16 @@ function desenharRanking() {
     { k: "nome", t: "Candidato", f: r => r.detalhe ? `<button type="button" class="link" data-id="${r.id}">${esc(r.nome)}</button>` : esc(r.nome) },
     { k: "partido", t: "Partido", f: r => esc(r.partido) },
     { k: "eleito", t: "Situação", f: r => pilulaSituacao(r) },
-    { k: "votos", t: "Votos", n: true, f: r => fmt.format(r.votos) },
-    { k: "desp", t: "Gasto", n: true, f: r => rc(r.desp) },
-    { k: "porvoto", t: "Gasto por voto", n: true, f: r => r$(r.porvoto) },
-    { k: "rec", t: "Arrecadado", n: true, f: r => rc(r.rec) },
-    { k: "pub", t: "Dinheiro público", n: true, f: r => rc(r.pub) },
-    { k: "pctpub", t: "% público", n: true, f: r => r.pctpub == null ? `<span class="sem">–</span>` : fmt.format(Math.round(r.pctpub)) + "%" },
-    { k: "pubvoto", t: "Público por voto", n: true, f: r => r$(r.pubvoto) },
+    { k: "votos", t: "Votos", n: true, f: r => fmt.format(r.votos), d: "Votos nominais válidos no 1º turno." },
+    { k: "desp", t: "Gasto", n: true, f: r => rc(r.desp), d: "Despesas contratadas declaradas pela campanha ao TSE até a data dos dados. Parcial até a prestação de contas final." },
+    { k: "porvoto", t: "Gasto por voto", n: true, f: r => r$(r.porvoto), d: "Gasto ÷ votos. Quanto a campanha gastou para cada voto que recebeu. Com poucos votos o valor dispara." },
+    { k: "rec", t: "Arrecadado", n: true, f: r => rc(r.rec), d: "Todo dinheiro que entrou na campanha: fundos públicos, doações de pessoas, recursos do próprio candidato e repasses do partido." },
+    { k: "pub", t: "Público recebido", n: true, f: r => rc(r.pub), d: "Quanto da arrecadação veio de dinheiro público: Fundo Eleitoral (FEFC) e Fundo Partidário, inclusive o repassado pelo partido. É dinheiro recebido, não necessariamente gasto." },
+    { k: "pctpub", t: "% público", n: true, f: r => r.pctpub == null ? `<span class="sem">–</span>` : fmt.format(Math.round(r.pctpub)) + "%", d: "Público recebido ÷ arrecadado. 100% quer dizer que a campanha viveu só de fundo público." },
+    { k: "pubvoto", t: "Público recebido por voto", n: true, f: r => r$(r.pubvoto), d: "Público recebido ÷ votos. Usa o que entrou de dinheiro público, não o que foi gasto; por isso pode ser maior que o gasto por voto quando a campanha ainda não declarou todas as despesas ou teve sobra." },
+    { k: "saldo", t: "Saldo", n: true, f: r => r.saldo == null ? `<span class="sem">–</span>` : `<span class="${r.saldo < -1 ? "neg" : r.saldo > 1 ? "pos" : ""}">${fmtRc.format(r.saldo)}</span>`, d: "Arrecadado − gasto. Positivo: entrou mais do que foi declarado de despesa até agora (despesas ainda não declaradas, ou sobra; sobra de Fundo Eleitoral tem de ser devolvida ao Tesouro). Negativo: despesa contratada maior que a arrecadação (dívida de campanha)." },
   ];
-  $("#rk-tabela").innerHTML = `<thead><tr>${cols.map(c => `<th class="${c.n ? "n" : ""}" ${c.sem ? "" : `data-k="${c.k}"`} ${c.k === col ? `aria-sort="${dir > 0 ? "ascending" : "descending"}"` : ""}>${esc(c.t)}${c.k === col ? (dir > 0 ? " ↑" : " ↓") : ""}</th>`).join("")}</tr></thead>
+  $("#rk-tabela").innerHTML = `<thead><tr>${cols.map(c => `<th class="${c.n ? "n" : ""}" ${c.sem ? "" : `data-k="${c.k}"`} ${c.k === col ? `aria-sort="${dir > 0 ? "ascending" : "descending"}"` : ""}>${esc(c.t)}${c.k === col ? (dir > 0 ? " ↑" : " ↓") : ""}${btnAjuda(c.d)}</th>`).join("")}</tr></thead>
     <tbody>${vis.map((r, j) => `<tr>${cols.map(c => `<td class="${c.n ? "n num" : ""}">${c.f(r, j)}</td>`).join("")}</tr>`).join("") || `<tr><td class="vazio" colspan="${cols.length}">Nenhum candidato com esse filtro.</td></tr>`}</tbody>`;
   $("#rk-info").textContent = `${fmt.format(linhas.length)} candidatos · página ${R.pag + 1} de ${paginas}`
     + (col === "porvoto" && R.min < 10000 ? " · Dica: com poucos votos o gasto por voto dispara; use o mínimo de 10.000 votos para comparar campanhas parecidas." : "");
@@ -1075,8 +1086,8 @@ function desenharRanking() {
 }
 
 async function rankingCSV() {
-  const b = $("#rk-csv"), cab = ["candidato", "numero", "partido", "situacao", "votos", "gasto", "gasto_por_voto", "arrecadado", "dinheiro_publico", "pct_publico", "publico_por_voto"];
-  const corpo = (E.rkLinhas || []).map(r => [csvQ(r.nome), r.id.split("_")[1], csvQ(r.partido), csvQ(r.situacao), r.votos, csvN(r.desp), csvN(r.porvoto), csvN(r.rec), csvN(r.pub), csvN(r.pctpub), csvN(r.pubvoto)].join(";"));
+  const b = $("#rk-csv"), cab = ["candidato", "numero", "partido", "situacao", "votos", "gasto", "gasto_por_voto", "arrecadado", "publico_recebido", "pct_publico", "publico_recebido_por_voto", "saldo"];
+  const corpo = (E.rkLinhas || []).map(r => [csvQ(r.nome), r.id.split("_")[1], csvQ(r.partido), csvQ(r.situacao), r.votos, csvN(r.desp), csvN(r.porvoto), csvN(r.rec), csvN(r.pub), csvN(r.pctpub), csvN(r.pubvoto), csvN(r.saldo)].join(";"));
   const nome = `${E.recorte}_ranking_${norm(E.meta.cargos[E.rk.cargo].nome).replace(/[^A-Z0-9]+/g, "_")}.csv`.toLowerCase();
   b.disabled = true;
   try { await salvarArquivo(nome, "﻿" + cab.join(";") + "\n" + corpo.join("\n")); b.textContent = "Baixado"; }
@@ -1091,6 +1102,7 @@ $("#rk-partido").addEventListener("change", e => { E.rk.partido = e.target.value
 $("#rk-min").addEventListener("change", e => { E.rk.min = +e.target.value; E.rk.pag = 0; desenharRanking(); });
 $("#rk-ord").addEventListener("change", e => { const o = RK_ORD[e.target.value]; if (o) { E.rk.ord = { col: o[0], dir: o[1] }; E.rk.pag = 0; desenharRanking(); } });
 $("#rk-tabela").addEventListener("click", e => {
+  if (e.target.closest(".ajuda")) return;
   const l = e.target.closest(".link"); if (l) { mostrarVisao("candidato"); abrirCandidato(l.dataset.id); window.scrollTo(0, 0); return; }
   const th = e.target.closest("th[data-k]"); if (!th) return;
   const k = th.dataset.k; E.rk.ord = { col: k, dir: E.rk.ord.col === k ? -E.rk.ord.dir : (["nome", "partido"].includes(k) ? 1 : -1) }; E.rk.pag = 0; desenharRanking();
