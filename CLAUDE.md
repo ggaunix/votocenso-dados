@@ -32,6 +32,8 @@ Para cada senador/deputado: de quais seções e locais de votação vieram os vo
 - Perfil: grupos de composição (cor, idade) somam 100%; célula suprimida pelo IBGE (1–2 pessoas) conta como 0; "pretos e pardos" é subtotal, não linha.
 - Ordenação por %: linhas com poucos válidos vão para o fim (seção < 50, local < 200, bairro/município < 1.000).
 - Mapa para todo candidato com ≥ 1.000 votos (`MIN_VOTOS_MAPA` em `exportar.py`).
+- Lista de candidatos = cadastro completo do `consulta_cand` (outer join com os votos): SP 2026 tem 1.129 dep. federais e 1.429 estaduais (TSE divulga 1.131 e 1.430). 142 sem voto válido: o `consulta_cand` 2026 não traz o motivo (`DS_SITUACAO_CANDIDATURA` = "#NE", `DS_SIT_TOT_TURNO` = "#NULO"); o site mostra "sem voto válido" sem afirmar a causa.
+- Lista lateral e ranking abrem mostrando todos os candidatos (sem filtro de mapa, de eleitos ou de votos).
 - Contas de campanha: despesas contratadas + receitas; "dinheiro público" = Fundo Especial + Fundo Partidário. Parciais até a prestação final (1º turno: 03/11/2026).
 - Senador 2026: dois votos por eleitor; % sobre o total de votos válidos para senador.
 

@@ -450,6 +450,14 @@ function montarFontes() {
 }
 
 /* ---------------------------------------------------------------- lista */
+const DICA_SEM_VOTO = "O TSE registrou esta candidatura, mas não há voto válido para ela. O arquivo de candidatos do TSE não informa o motivo; em geral são candidaturas indeferidas (os votos dados a elas são anulados) ou renúncias.";
+function pilulaSituacao(c) {
+  if (!c.votos && !c.situacao) return `<span class="pilula nao" title="${esc(DICA_SEM_VOTO)}">sem voto válido</span>`;
+  if (!c.situacao) return "";
+  const el = /^ELEITO/i.test(c.situacao);
+  return `<span class="pilula ${el ? "eleito" : "nao"}">${el ? "eleito" : esc(c.situacao.toLowerCase())}</span>`;
+}
+
 function desenharLista() {
   const q = norm(E.busca), so = $("#so-detalhe").checked;
   const todos = q ? E.meta.candidatos : E.meta.candidatos.filter(c => String(c.cargo) === E.cargo);
@@ -459,16 +467,16 @@ function desenharLista() {
   const vis = filtrados.slice(0, 3000);
   $("#cands").innerHTML = vis.map(c => {
     const el = /^ELEITO/i.test(c.situacao);
-    const semMapa = !c.detalhe ? (c.votos ? `Sem mapa: menos de ${fmt.format(E.meta.min_votos_mapa || 1000)} votos` : "Sem votos válidos") : "";
+    const semMapa = !c.detalhe ? (c.votos ? `Sem mapa: menos de ${fmt.format(E.meta.min_votos_mapa || 1000)} votos` : DICA_SEM_VOTO) : "";
     return `<li class="cand${c.detalhe ? "" : " sem-detalhe"}" data-id="${c.id}" tabindex="${c.detalhe ? 0 : -1}" aria-current="${c.id === E.cand}"${semMapa ? ` title="${esc(semMapa)}"` : ""}>
       <span class="nome">${esc(c.nome)}</span>
       <span class="votos num">${fmt.format(c.votos)}</span>
-      <span class="sub">${q && String(c.cargo) !== E.cargo ? esc(E.meta.cargos[c.cargo].nome) + " · " : ""}${esc(c.partido || "sem partido")} · ${c.nr}${c.situacao ? ` · <span class="pilula ${el ? "eleito" : "nao"}">${el ? "eleito" : esc(c.situacao.toLowerCase())}</span>` : ""}</span>
+      <span class="sub">${q && String(c.cargo) !== E.cargo ? esc(E.meta.cargos[c.cargo].nome) + " · " : ""}${esc(c.partido || "sem partido")} · ${c.nr}${pilulaSituacao(c) ? " · " + pilulaSituacao(c) : ""}</span>
     </li>`;
   }).join("") || `<li class="vazio">Nenhum candidato encontrado.</li>`;
   const comMapa = filtrados.filter(c => c.detalhe).length, semVoto = filtrados.filter(c => !c.votos).length;
   $("#nota-lista").textContent = (filtrados.length > vis.length ? `Mostrando ${vis.length} de ${fmt.format(filtrados.length)}. ` : `${fmt.format(filtrados.length)} candidatos`)
-    + ` · ${fmt.format(comMapa)} com mapa${semVoto ? ` · ${fmt.format(semVoto)} sem voto válido (indeferidos, renúncias etc.)` : ""}. Os em cinza não têm mapa.`;
+    + ` · ${fmt.format(comMapa)} com mapa${semVoto ? ` · ${fmt.format(semVoto)} sem voto válido` : ""}. Os em cinza não têm mapa.`;
 }
 
 /* ---------------------------------------------------------------- candidato */
@@ -1048,7 +1056,7 @@ function desenharRanking() {
     { k: "pos", t: "#", n: true, f: (r, j) => R.pag * POR + j + 1, sem: true },
     { k: "nome", t: "Candidato", f: r => r.detalhe ? `<button type="button" class="link" data-id="${r.id}">${esc(r.nome)}</button>` : esc(r.nome) },
     { k: "partido", t: "Partido", f: r => esc(r.partido) },
-    { k: "eleito", t: "Situação", f: r => r.situacao ? `<span class="pilula ${r.eleito ? "eleito" : "nao"}">${r.eleito ? "eleito" : esc(r.situacao.toLowerCase())}</span>` : "" },
+    { k: "eleito", t: "Situação", f: r => pilulaSituacao(r) },
     { k: "votos", t: "Votos", n: true, f: r => fmt.format(r.votos) },
     { k: "desp", t: "Gasto", n: true, f: r => rc(r.desp) },
     { k: "porvoto", t: "Gasto por voto", n: true, f: r => r$(r.porvoto) },
