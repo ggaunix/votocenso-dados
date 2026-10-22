@@ -6,7 +6,8 @@ censo por setor...
    bairros: 29025 setores com bairro, 74294 usam o distrito, 0 o município
    malha: 301 polígonos extras de setores repetidos; dissolvendo
 montando arquivos...
-   locais.json: 11079 locais, 4.7 MB antes de comprimir
+   censo municipal: 645 de 645 municípios
+   locais.json: 11079 locais, 4.8 MB antes de comprimir
    despesas_contratadas_candidatos_2026_SP.csv: valor em VR_DESPESA_CONTRATADA; colunas usadas ['CD_CARGO', 'NR_CANDIDATO', 'DT_GERACAO', 'DT_DESPESA', 'VR_DESPESA_CONTRATADA']
    receitas_candidatos_2026_SP.csv: valor em VR_RECEITA; colunas usadas ['CD_CARGO', 'NR_CANDIDATO', 'DS_FONTE_RECEITA', 'DT_GERACAO', 'DT_RECEITA', 'VR_RECEITA']
    fontes de receita: {'OUTROS RECURSOS': 15029, 'FUNDO ESPECIAL': 5893, 'FUNDO PARTIDARIO': 5584, '#NULO': 363}
