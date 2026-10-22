@@ -163,6 +163,17 @@ def main(argv=None):
                            for k, _, _, casas in INDICADORES if f"{nivel}_{k}" in perfil}
     if "setor_renda_mediana_responsavel" in perfil:
         L["ind"]["setor"]["renda_mediana_responsavel"] = lista(perfil["setor_renda_mediana_responsavel"], 0)
+    # censo do município inteiro (soma de todos os setores do município), na ordem de `muns`.
+    # O município do IBGE de cada nome do TSE sai dos setores onde ficam os locais.
+    cod_ibge = (pd.DataFrame({"m": L["mun"], "cd": perfil["cd_setor"].astype("string").str[:7]})
+                .dropna().groupby("m")["cd"].agg(lambda x: x.mode().iloc[0]))
+    ind_mun = censo.indicadores(censo.somar_por(setores, "CD_MUN"))
+    ind_mun.index = ind_mun.index.astype(str)
+    L["ind_mun"] = {k: lista([ind_mun[k].get(cod_ibge.get(i)) if cod_ibge.get(i) in ind_mun.index else None
+                              for i in range(len(muns))], casas)
+                    for k, _, _, casas in INDICADORES if k in ind_mun}
+    sem_cod = [muns[i] for i in range(len(muns)) if cod_ibge.get(i) not in ind_mun.index]
+    log(f"   censo municipal: {len(muns) - len(sem_cod)} de {len(muns)} municípios" + (f"; sem: {sem_cod[:5]}" if sem_cod else ""))
     tam = gravar(destino / "locais.json.gz", L)
     log(f"   locais.json: {len(locais)} locais, {tam / 1e6:.1f} MB antes de comprimir")
 

@@ -64,6 +64,7 @@ def main():
         assert set(L["val"]) == {"5", "6", "7"}
         assert sum(L["val"]["6"]) == meta["cargos"]["6"]["validos_uf"]
         assert len(L["ind"]["raio"]["renda_media_responsavel"]) == 40
+        assert L["ind_mun"]["pop"][0] and L["ind_mun"]["renda_media_responsavel"][0] > 0, L["ind_mun"]["pop"]
         assert cand["6_1111"]["contas"] == {"desp": 2000.0, "rec": 4000.0, "pub": 3000.0}, cand["6_1111"].get("contas")
         assert "contas" not in cand["6_2222"] and meta["contas"]["situacao"] in ("parcial", "final")
         print(json.dumps(meta["avisos"]), len(meta["candidatos"]), "candidatos")
