@@ -8,17 +8,20 @@ candidatos (consulta_cand)...
       DS_SITUACAO_CANDIDATURA: {'#NE': 32}
       DS_SIT_TOT_TURNO: {'NÃO ELEITO': 22, '#NULO': 6, '2º TURNO': 4}
 votos por seção (passadas 1 e 2)...
-   votacao_secao_2026_SP.csv: linhas por cargo|turno no arquivo {'3|1': 579514, '5|1': 1149273, '6|1': 7401888, '7|1': 7912959}
-   candidatos com mapa: 1353 (eleitos + todos com 1000 votos ou mais)
-   cargos com voto no arquivo: ['Senador', 'Deputado federal', 'Deputado estadual']; ainda sem dados: ['Presidente – 1º turno', 'Presidente – 2º turno']
+   votacao_secao_2026_SP.csv, votacao_secao_2026_BR_SP.csv: linhas por cargo|turno {'1|1': 848063, '3|1': 579514, '5|1': 1149273, '6|1': 7401888, '7|1': 7912959}
+   candidatos com mapa: 1372 (eleitos + todos com 1000 votos ou mais)
+   cargos com voto no arquivo: ['Presidente – 1º turno', 'Governador – 1º turno', 'Senador', 'Deputado federal', 'Deputado estadual']; ainda sem dados: ['Presidente – 2º turno', 'Governador – 2º turno']
 locais de votação...
 censo por setor...
    bairros: 29025 setores com bairro, 74294 usam o distrito, 0 o município
    malha: 301 polígonos extras de setores repetidos; dissolvendo
 montando arquivos...
-   linhas cargo×seção em local diferente do cadastro: 93
+   linhas cargo×seção em local diferente do cadastro: 155
    censo municipal: 645 de 645 municípios
-   locais.json: 11078 locais, 4.8 MB antes de comprimir
+   locais.json: 11078 locais, 4.9 MB antes de comprimir
+   cargo 1: 13 registrados no consulta_cand, 13 com voto, 13 na lista
+   cargo 3: 7 registrados no consulta_cand, 6 com voto, 7 na lista
+      sem voto, por situação do registro: {'(sem registro)': 1}
    cargo 5: 15 registrados no consulta_cand, 15 com voto, 15 na lista
    cargo 6: 1129 registrados no consulta_cand, 1066 com voto, 1129 na lista
       sem voto, por situação do registro: {'(sem registro)': 63}
@@ -27,6 +30,6 @@ montando arquivos...
    despesas_contratadas_candidatos_2026_SP.csv: valor em VR_DESPESA_CONTRATADA; colunas usadas ['CD_CARGO', 'NR_CANDIDATO', 'DT_GERACAO', 'DT_DESPESA', 'VR_DESPESA_CONTRATADA']
    receitas_candidatos_2026_SP.csv: valor em VR_RECEITA; colunas usadas ['CD_CARGO', 'NR_CANDIDATO', 'DS_FONTE_RECEITA', 'DT_GERACAO', 'DT_RECEITA', 'VR_RECEITA']
    fontes de receita: {'OUTROS RECURSOS': 15407, 'FUNDO ESPECIAL': 5953, 'FUNDO PARTIDARIO': 5642, '#NULO': 362}
-   contas: 2445 candidatos com prestação de contas (parcial, ref. 26/10/2026)
-pronto: /home/runner/work/votocenso-dados/votocenso-dados/portal_dados/2026_SP (1353 candidatos detalhados)
-65M	portal_dados/2026_SP
+   contas: 2452 candidatos com prestação de contas (parcial, ref. 26/10/2026)
+pronto: /home/runner/work/votocenso-dados/votocenso-dados/portal_dados/2026_SP (1372 candidatos detalhados)
+69M	portal_dados/2026_SP
