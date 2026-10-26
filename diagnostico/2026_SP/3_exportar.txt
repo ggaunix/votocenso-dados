@@ -18,7 +18,7 @@ montando arquivos...
       sem voto, por situação do registro: {'(sem registro)': 79}
    despesas_contratadas_candidatos_2026_SP.csv: valor em VR_DESPESA_CONTRATADA; colunas usadas ['CD_CARGO', 'NR_CANDIDATO', 'DT_GERACAO', 'DT_DESPESA', 'VR_DESPESA_CONTRATADA']
    receitas_candidatos_2026_SP.csv: valor em VR_RECEITA; colunas usadas ['CD_CARGO', 'NR_CANDIDATO', 'DS_FONTE_RECEITA', 'DT_GERACAO', 'DT_RECEITA', 'VR_RECEITA']
-   fontes de receita: {'OUTROS RECURSOS': 15029, 'FUNDO ESPECIAL': 5893, 'FUNDO PARTIDARIO': 5584, '#NULO': 363}
-   contas: 2444 candidatos com prestação de contas (parcial, ref. 21/10/2026)
+   fontes de receita: {'OUTROS RECURSOS': 15407, 'FUNDO ESPECIAL': 5953, 'FUNDO PARTIDARIO': 5642, '#NULO': 362}
+   contas: 2445 candidatos com prestação de contas (parcial, ref. 26/10/2026)
 pronto: /home/runner/work/votocenso-dados/votocenso-dados/portal_dados/2026_SP (1353 candidatos detalhados)
 65M	portal_dados/2026_SP
