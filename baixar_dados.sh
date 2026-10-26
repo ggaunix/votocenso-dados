@@ -47,11 +47,20 @@ atualizar() {  # url zip
 }
 
 for ANO in "${ANOS[@]}"; do
-  rm -f "$TSE"/votacao_secao_"${ANO}"_"${UF}"*.csv "$TSE"/consulta_cand_"${ANO}"_*.csv "$TSE"/eleitorado_local_votacao_"${ANO}"*.csv
+  rm -f "$TSE"/votacao_secao_"${ANO}"_*.csv "$TSE"/consulta_cand_"${ANO}"_*.csv "$TSE"/eleitorado_local_votacao_"${ANO}"*.csv
 
   z="$ZIPS/votacao_secao_${ANO}_${UF}.zip"
   if atualizar "$U_TSE/votacao_secao/votacao_secao_${ANO}_${UF}.zip" "$z"; then unzip -o -q "$z" -d "$TSE"
   else echo "  (se for eleição recente, o TSE pode ainda não ter publicado)"; fi
+
+  # presidente fica no arquivo nacional (BR): extrai só as linhas da UF, sem gravar o Brasil inteiro
+  z="$ZIPS/votacao_secao_${ANO}_BR.zip"
+  if atualizar "$U_TSE/votacao_secao/votacao_secao_${ANO}_BR.zip" "$z"; then
+    unzip -p "$z" '*.csv' | awk -F';' -v uf="\"$UF\"" '
+      NR == 1 { for (i = 1; i <= NF; i++) if ($i == "\"SG_UF\"") c = i; print; next }
+      c && $c == uf' > "$TSE/votacao_secao_${ANO}_BR_${UF}.csv"
+    echo "  presidente em $UF: $(($(wc -l < "$TSE/votacao_secao_${ANO}_BR_${UF}.csv") - 1)) linhas"
+  else echo "  arquivo nacional (presidente) indisponível"; fi
 
   z="$ZIPS/consulta_cand_${ANO}.zip"
   if atualizar "$U_TSE/consulta_cand/consulta_cand_${ANO}.zip" "$z"; then

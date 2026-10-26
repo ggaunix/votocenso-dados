@@ -565,7 +565,7 @@ function desenharContas(c) {
   if (!info) { alvo.hidden = true; return; }
   if (E.meta.cargos[c.cargo] && E.meta.cargos[c.cargo].contas === false) {
     alvo.hidden = false;
-    alvo.innerHTML = `Campanha nacional: as contas não entram aqui, porque dividir o gasto da campanha inteira pelos votos de ${esc(E.meta.uf)} daria um número sem sentido.`;
+    alvo.textContent = E.meta.cargos[c.cargo].motivo_contas || "As contas de campanha não entram para este cargo.";
     return;
   }
   alvo.hidden = false;

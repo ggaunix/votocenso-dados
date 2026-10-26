@@ -27,13 +27,18 @@ from . import censo, config, contas, entorno, tse
 PRAZO_CONTAS_FINAL = {2026: dt.date(2026, 11, 3)}  # 1º turno; depois disso o TSE ainda leva dias para publicar
 
 # Código do portal = CD_CARGO do TSE; 2º turno de cargo majoritário = CD_CARGO + 100.
-NOMES_CARGO = {1: "Presidente – 1º turno", 101: "Presidente – 2º turno", 5: "Senador",
+NOMES_CARGO = {1: "Presidente – 1º turno", 101: "Presidente – 2º turno",
+               3: "Governador – 1º turno", 103: "Governador – 2º turno", 5: "Senador",
                6: "Deputado federal", 7: "Deputado estadual", 8: "Deputado distrital"}
-NAO_ELEITOS = {1: 20, 101: 2, 5: 5, 6: 30, 7: 30, 8: 15}  # mínimo de não eleitos com mapa, mesmo abaixo do corte de votos
+NAO_ELEITOS = {1: 20, 101: 2, 3: 15, 103: 2, 5: 5, 6: 30, 7: 30, 8: 15}  # mínimo de não eleitos com mapa, mesmo abaixo do corte de votos
 # majoritários com número de 2 dígitos: para eles, número < 100 é candidato, não voto de legenda
 DOIS_DIGITOS = {1, 101, 3, 103}
-# campanha nacional: dividir o gasto pelos votos da UF não faz sentido; contas não entram
-SEM_CONTAS = {1, 101}
+# cargos sem contas na tela, com o motivo
+SEM_CONTAS = {
+    1: "Campanha nacional: dividir o gasto da campanha inteira pelos votos de {uf} daria um número sem sentido.",
+    101: "Campanha nacional: dividir o gasto da campanha inteira pelos votos de {uf} daria um número sem sentido.",
+    103: "As contas de campanha (que cobrem os dois turnos) aparecem na aba do 1º turno.",
+}
 
 
 
@@ -109,7 +114,7 @@ def main(argv=None):
     a = p.parse_args(argv)
     destino = a.saida or (config.RAIZ / "portal_dados" / f"{a.ano}_{a.uf}")
     base = [5, 6, 8] if a.uf == "DF" else [5, 6, 7]
-    mapa = {(c, 1): c for c in base} | {(1, 1): 1, (1, 2): 101}
+    mapa = {(c, 1): c for c in base} | {(1, 1): 1, (1, 2): 101, (3, 1): 3, (3, 2): 103}
 
     log("candidatos (consulta_cand)...")
     cands = tse.carregar_candidatos(a.ano, a.uf, mapa)
@@ -302,7 +307,8 @@ def main(argv=None):
         "municipios": muns,
         "cargos": {str(c): {"nome": NOMES_CARGO[c],
                             "validos_uf": int(validos.loc[validos["CD_CARGO"] == c, "validos"].sum()),
-                            "turno": 2 if c > 100 else 1, "contas": c not in SEM_CONTAS}
+                            "turno": 2 if c > 100 else 1, "contas": c not in SEM_CONTAS,
+                            "motivo_contas": SEM_CONTAS.get(c, "").format(uf=a.uf)}
                    for c in cargos},
         "candidatos": lista_cand,
         "contas": info_contas,

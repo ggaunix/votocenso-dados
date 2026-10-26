@@ -239,10 +239,16 @@ def votos_varios_cargos(ano: int, uf: str, mapa: dict, escolher):
     Passada 2: linhas candidato x seção dos escolhidos.
     Saídas trazem NR_LOCAL_VOTACAO do próprio arquivo de votos (no 2º turno algumas seções mudam de local).
     """
-    caminho = _achar(config.DADOS_TSE, f"votacao_secao_{ano}_{uf}*.csv")
+    # arquivo da UF (governador, senador, deputados) + recorte da UF no arquivo nacional (presidente)
+    arquivos = [f for f in (config.DADOS_TSE / f"votacao_secao_{ano}_{uf}.csv", config.DADOS_TSE / f"votacao_secao_{ano}_BR_{uf}.csv")
+                if f.exists()] or [_achar(config.DADOS_TSE, f"votacao_secao_{ano}_{uf}*.csv")]
     cols = ["NR_TURNO", "CD_CARGO", "CD_MUNICIPIO", "NR_ZONA", "NR_SECAO",
             "NR_VOTAVEL", "NM_VOTAVEL", "QT_VOTOS", "NR_LOCAL_VOTACAO"]
     obrig = ["CD_CARGO", "CD_MUNICIPIO", "NR_ZONA", "NR_SECAO", "NR_VOTAVEL", "NM_VOTAVEL", "QT_VOTOS"]
+
+    def todos_blocos():
+        for f in arquivos:
+            yield from _blocos(f, cols, obrig)
     alvo = {f"{c}|{t}": cod for (c, t), cod in mapa.items()}
     vistos: dict = {}
 
@@ -259,7 +265,7 @@ def votos_varios_cargos(ano: int, uf: str, mapa: dict, escolher):
         return b
 
     tot, val, nomes = [], [], {}
-    for b in _blocos(caminho, cols, obrig):
+    for b in todos_blocos():
         b = filtrar(b)
         if b.empty:
             continue
@@ -267,9 +273,10 @@ def votos_varios_cargos(ano: int, uf: str, mapa: dict, escolher):
         nomes.update(dict(zip(zip(b["CD_CARGO"], b["NR_VOTAVEL"]), b["NM_VOTAVEL"])))
         v = b[~b["NR_VOTAVEL"].isin(config.NAO_VALIDOS)]
         val.append(v.groupby(["CD_CARGO"] + CHAVE_SECAO + ["NR_LOCAL_VOTACAO"], dropna=False)["QT_VOTOS"].sum())
-    print(f"   {caminho.name}: linhas por cargo|turno no arquivo {dict(sorted(vistos.items()))}", file=sys.stderr, flush=True)
+    nomes_arq = ", ".join(f.name for f in arquivos)
+    print(f"   {nomes_arq}: linhas por cargo|turno {dict(sorted(vistos.items()))}", file=sys.stderr, flush=True)
     if not tot:
-        raise ValueError(f"Nenhum voto de {sorted(mapa)} em {caminho.name}")
+        raise ValueError(f"Nenhum voto de {sorted(mapa)} em {nomes_arq}")
     totais = pd.concat(tot).groupby(level=[0, 1]).sum().rename("votos").reset_index()
     totais["NM_VOTAVEL"] = [nomes.get(k) for k in zip(totais["CD_CARGO"], totais["NR_VOTAVEL"])]
     totais = totais[~totais["NR_VOTAVEL"].isin(config.NAO_VALIDOS)]
@@ -277,7 +284,7 @@ def votos_varios_cargos(ano: int, uf: str, mapa: dict, escolher):
 
     escolhidos = escolher(totais)
     partes = []
-    for b in _blocos(caminho, cols, obrig):
+    for b in todos_blocos():
         b = filtrar(b)
         chave = list(zip(b["CD_CARGO"], b["NR_VOTAVEL"]))
         partes.append(b[[k in escolhidos for k in chave]])

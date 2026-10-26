@@ -42,7 +42,7 @@ def main():
                     loc = "1001" if (turno == "2" and r["NR_SECAO"] == "1") else r["NR_LOCAL_VOTACAO"]
                     pres.append({**r.to_dict(), "NR_TURNO": turno, "CD_CARGO": "1", "DS_CARGO": "Presidente",
                                  "NR_VOTAVEL": nr, "NM_VOTAVEL": f"PRES {nr}", "QT_VOTOS": str(q), "NR_LOCAL_VOTACAO": loc})
-        pd.concat([vs, pd.DataFrame(pres)]).to_csv(tse_dir / "votacao_secao_2022_SP.csv", sep=";", index=False, encoding="latin-1")
+        pd.DataFrame(pres).assign(SG_UF="SP").to_csv(tse_dir / "votacao_secao_2022_BR_SP.csv", sep=";", index=False, encoding="latin-1")
         pd.DataFrame([dict(NR_TURNO=t, SG_UF="BR", CD_CARGO="1", NR_CANDIDATO=n, NM_URNA_CANDIDATO=f"PRESIDENTE {n}",
                            SG_PARTIDO=pt, DS_SIT_TOT_TURNO=sit)
                       for t, n, pt, sit in (("1", "13", "P13", "2º TURNO"), ("1", "22", "P22", "2º TURNO"), ("1", "30", "P30", "NÃO ELEITO"),
@@ -81,7 +81,7 @@ def main():
         assert sum(c["v"]) == cand["6_1111"]["votos"] == sum(c["s_v"])
         assert all(sv >= v for sv, v in zip(c["s_val"], c["s_v"]))
         assert set(L["val"]) == {"1", "101", "5", "6"}, set(L["val"])
-        assert meta["cargos"]["101"]["turno"] == 2 and meta["cargos"]["101"]["contas"] is False
+        assert meta["cargos"]["101"]["turno"] == 2 and meta["cargos"]["101"]["contas"] is False and "nacional" in meta["cargos"]["101"]["motivo_contas"]
         assert cand["101_13"]["situacao"] == "ELEITO" and cand["1_13"]["situacao"] == "2º TURNO" and cand["1_30"]["detalhe"]
         assert cand["101_13"]["votos"] == 70 * 120 and "contas" not in cand["1_13"]
         p2 = json.loads(gzip.decompress((destino / "cand/101_13.json.gz").read_bytes()))
