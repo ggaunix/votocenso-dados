@@ -1,16 +1,24 @@
 candidatos (consulta_cand)...
    consulta_cand: colunas de situação ['DS_SITUACAO_CANDIDATURA', 'DS_SIT_TOT_TURNO']
+   consulta_cand_2026_SP.csv: 2630 linhas; cargos/turnos {('10', '1'): 16, ('3', '1'): 7, ('4', '1'): 10, ('5', '1'): 16, ('6', '1'): 1132, ('7', '1'): 1431, ('9', '1'): 18}
       DS_SITUACAO_CANDIDATURA: {'#NE': 2630}
       DS_SIT_TOT_TURNO: {'SUPLENTE': 1665, 'NÃO ELEITO': 637, '#NULO': 156, 'ELEITO POR QP': 146, 'ELEITO POR MÉDIA': 18, 'ELEITO': 8}
+   consulta_cand: colunas de situação ['DS_SITUACAO_CANDIDATURA', 'DS_SIT_TOT_TURNO']
+   consulta_cand_2026_BR.csv: 32 linhas; cargos/turnos {('1', '1'): 14, ('1', '2'): 2, ('2', '1'): 14, ('2', '2'): 2}
+      DS_SITUACAO_CANDIDATURA: {'#NE': 32}
+      DS_SIT_TOT_TURNO: {'NÃO ELEITO': 22, '#NULO': 6, '2º TURNO': 4}
 votos por seção (passadas 1 e 2)...
+   votacao_secao_2026_SP.csv: linhas por cargo|turno no arquivo {'3|1': 579514, '5|1': 1149273, '6|1': 7401888, '7|1': 7912959}
    candidatos com mapa: 1353 (eleitos + todos com 1000 votos ou mais)
+   cargos com voto no arquivo: ['Senador', 'Deputado federal', 'Deputado estadual']; ainda sem dados: ['Presidente – 1º turno', 'Presidente – 2º turno']
 locais de votação...
 censo por setor...
    bairros: 29025 setores com bairro, 74294 usam o distrito, 0 o município
    malha: 301 polígonos extras de setores repetidos; dissolvendo
 montando arquivos...
+   linhas cargo×seção em local diferente do cadastro: 93
    censo municipal: 645 de 645 municípios
-   locais.json: 11079 locais, 4.8 MB antes de comprimir
+   locais.json: 11078 locais, 4.8 MB antes de comprimir
    cargo 5: 15 registrados no consulta_cand, 15 com voto, 15 na lista
    cargo 6: 1129 registrados no consulta_cand, 1066 com voto, 1129 na lista
       sem voto, por situação do registro: {'(sem registro)': 63}
