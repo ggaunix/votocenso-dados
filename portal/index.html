@@ -431,7 +431,7 @@ async function abrirRecorte_(id) {
   $("#faixa-demo").hidden = !E.meta.demo;
   if (E.meta.min_votos_mapa) $("#rot-detalhe").textContent = `Só candidatos com mapa (eleitos e todos com ${fmt.format(E.meta.min_votos_mapa)} votos ou mais)`;
   montarFontes();
-  const cargos = Object.keys(E.meta.cargos);
+  const cargos = ordemCargos();
   E.cargo = cargos.includes("6") ? "6" : cargos[0];
   $("#abas-cargo").innerHTML = cargos.map(c =>
     `<button class="aba" data-cargo="${c}" aria-pressed="${c === E.cargo}">${esc(E.meta.cargos[c].nome)}</button>`).join("");
@@ -448,7 +448,7 @@ async function abrirRecorte_(id) {
 function montarFontes() {
   const m = E.meta, a = m.avisos || {};
   $("#fontes").innerHTML = `
-    <p><b>${esc(m.uf)} · eleições ${m.ano} · ${m.turno}º turno.</b> Processado em ${esc((m.gerado_em || "").replace("T", " "))} UTC.</p>
+    <p><b>${esc(m.uf)} · eleições ${m.ano} · ${m.turno === 2 ? "1º e 2º turno" : "1º turno"}.</b> Processado em ${esc((m.gerado_em || "").replace("T", " "))} UTC.</p>
     <p>Os votos de cada seção vêm do TSE. O censo do entorno de cada local de votação vem do Censo 2022 do IBGE, em três níveis: o setor censitário onde fica o local, os setores num raio de ${fmt.format(m.raio_m)} m e o bairro do IBGE.</p>
     <p>${fmt.format(a.locais_sem_coordenada || 0)} de ${fmt.format(a.locais_total || 0)} locais vieram sem coordenada do TSE e ficam fora do mapa e do perfil. ${a.votos_sem_local ? fmt.format(a.votos_sem_local) + " votos de seções sem local identificado também ficam fora." : ""}</p>
     ${m.cargos["5"] ? `<p>Senador: em ${m.ano} cada eleitor de ${esc(m.uf)} votou em dois candidatos. O % de um candidato num local é sobre o total de votos válidos para senador ali, que conta os dois votos de cada eleitor.</p>` : ""}
@@ -554,9 +554,20 @@ function montarFicha(c) {
 const fmtRc = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 });
 const fmtR2 = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+// presidente 1º e 2º turno lado a lado, depois os demais cargos
+function ordemCargos() {
+  const k = c => +c > 100 ? +c - 100 + 0.5 : +c;
+  return Object.keys(E.meta.cargos).sort((a, b) => k(a) - k(b));
+}
+
 function desenharContas(c) {
   const alvo = $("#c-contas"), info = E.meta.contas;
   if (!info) { alvo.hidden = true; return; }
+  if (E.meta.cargos[c.cargo] && E.meta.cargos[c.cargo].contas === false) {
+    alvo.hidden = false;
+    alvo.innerHTML = `Campanha nacional: as contas não entram aqui, porque dividir o gasto da campanha inteira pelos votos de ${esc(E.meta.uf)} daria um número sem sentido.`;
+    return;
+  }
   alvo.hidden = false;
   const ref = info.referencia ? ` até ${esc(info.referencia)}` : "";
   const prazo = info.prazo_final ? new Date(info.prazo_final + "T12:00:00").toLocaleDateString("pt-BR") : "";
@@ -1025,7 +1036,7 @@ function linhasRanking() {
 }
 
 function montarRanking() {
-  const R = E.rk, cargos = Object.keys(E.meta.cargos);
+  const R = E.rk, cargos = ordemCargos().filter(c => E.meta.cargos[c].contas !== false);
   if (!cargos.includes(R.cargo)) R.cargo = cargos.includes("6") ? "6" : cargos[0];
   $("#rk-cargo").innerHTML = cargos.map(c => `<button class="aba" data-cargo="${c}" aria-pressed="${c === R.cargo}">${esc(E.meta.cargos[c].nome)}</button>`).join("");
   const partidos = [...new Set(E.meta.candidatos.filter(c => String(c.cargo) === R.cargo).map(c => c.partido).filter(Boolean))].sort();

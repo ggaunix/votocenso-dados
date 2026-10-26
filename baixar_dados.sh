@@ -28,17 +28,35 @@ extrair() {  # zip pasta
   unzip -o -q "$1" -d "$2" && rm -f "$1"
 }
 
+# TSE: os zips ficam em dados/zips (em cache) e são baixados de novo só se o TSE publicar versão
+# mais nova (curl -z compara com a data do zip local). Os CSVs são extraídos a cada execução.
+ZIPS="$RAIZ/dados/zips"; mkdir -p "$ZIPS"
+atualizar() {  # url zip
+  local url="$1" zip="$2"
+  if [[ -s "$zip" ]]; then
+    if curl -fsSL --retry 3 --retry-delay 5 -R -z "$zip" -o "$zip.novo" "$url" && [[ -s "$zip.novo" ]]; then
+      mv "$zip.novo" "$zip"; echo "atualizado $(basename "$zip") ($(date -r "$zip" -u +%F' '%H:%MZ))"
+    else
+      rm -f "$zip.novo"; echo "sem mudança $(basename "$zip") ($(date -r "$zip" -u +%F' '%H:%MZ))"
+    fi
+  else
+    echo "baixando $(basename "$zip")"
+    curl -fL --retry 3 --retry-delay 5 -R -o "$zip.part" "$url" || { rm -f "$zip.part"; echo "  FALHOU: $url" >&2; return 1; }
+    mv "$zip.part" "$zip"; echo "  versão de $(date -r "$zip" -u +%F' '%H:%MZ)"
+  fi
+}
+
 for ANO in "${ANOS[@]}"; do
-  z="$TSE/votacao_secao_${ANO}_${UF}.zip"
-  if ls "$TSE"/votacao_secao_"${ANO}"_"${UF}"*.csv >/dev/null 2>&1; then echo "ok votacao_secao $ANO $UF"
-  elif baixar "$U_TSE/votacao_secao/votacao_secao_${ANO}_${UF}.zip" "$z"; then extrair "$z" "$TSE"
+  rm -f "$TSE"/votacao_secao_"${ANO}"_"${UF}"*.csv "$TSE"/consulta_cand_"${ANO}"_*.csv "$TSE"/eleitorado_local_votacao_"${ANO}"*.csv
+
+  z="$ZIPS/votacao_secao_${ANO}_${UF}.zip"
+  if atualizar "$U_TSE/votacao_secao/votacao_secao_${ANO}_${UF}.zip" "$z"; then unzip -o -q "$z" -d "$TSE"
   else echo "  (se for eleição recente, o TSE pode ainda não ter publicado)"; fi
 
-  z="$TSE/consulta_cand_${ANO}.zip"
-  if ls "$TSE"/consulta_cand_"${ANO}"_"${UF}"*.csv >/dev/null 2>&1; then echo "ok consulta_cand $ANO $UF"
-  elif baixar "$U_TSE/consulta_cand/consulta_cand_${ANO}.zip" "$z"; then
+  z="$ZIPS/consulta_cand_${ANO}.zip"
+  if atualizar "$U_TSE/consulta_cand/consulta_cand_${ANO}.zip" "$z"; then
     unzip -o -q "$z" "consulta_cand_${ANO}_${UF}.csv" -d "$TSE" || echo "  consulta_cand sem arquivo de $UF" >&2
-    rm -f "$z"
+    unzip -o -q "$z" "consulta_cand_${ANO}_BR.csv" -d "$TSE" || echo "  consulta_cand sem arquivo nacional (BR)" >&2
   fi
 
   # contas de campanha: sempre baixa de novo (mudam até a prestação final); fica fora do cache
@@ -49,13 +67,10 @@ for ANO in "${ANOS[@]}"; do
     ls -la "$CONTAS"
   else echo "  contas de campanha indisponíveis" >&2; fi
 
-  z="$TSE/eleitorado_local_votacao_${ANO}.zip"
-  if ls "$TSE"/eleitorado_local_votacao_"${ANO}"*.csv >/dev/null 2>&1; then echo "ok eleitorado_local_votacao $ANO"
-  elif baixar "$U_TSE/eleitorado_locais_votacao/eleitorado_local_votacao_${ANO}.zip" "$z"; then
-    extrair "$z" "$TSE"
-    if [[ -f "$TSE/eleitorado_local_votacao_${ANO}_${UF}.csv" ]]; then
-      find "$TSE" -name "eleitorado_local_votacao_${ANO}_*.csv" ! -name "*_${UF}.csv" -delete
-    fi
+  z="$ZIPS/eleitorado_local_votacao_${ANO}.zip"
+  if atualizar "$U_TSE/eleitorado_locais_votacao/eleitorado_local_votacao_${ANO}.zip" "$z"; then
+    # a partir de 2026 o zip traz um arquivo por UF; antes, um nacional
+    unzip -o -q "$z" "*_${UF}.csv" -d "$TSE" 2>/dev/null || unzip -o -q "$z" -d "$TSE"
   fi
 done
 

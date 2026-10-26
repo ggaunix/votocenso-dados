@@ -7,7 +7,7 @@ Para cada senador/deputado: de quais seções e locais de votação vieram os vo
 
 - Site público: https://ggaunix.github.io/votocenso-dados/ (GitHub Pages, branch `gh-pages`, gerado pelo workflow). `#ranking` abre o ranking de campanha.
 - Cópia privada no claude.ai ("Origem do Voto"): limite de 511 arquivos, então fica só com eleitos + 30 suplentes por cargo; o site público tem todos.
-- Recorte atual: SP, eleições 2026, 1º turno × Censo 2022.
+- Recorte atual: SP, eleições 2026 (presidente 1º e 2º turno; senador e deputados no 1º) × Censo 2022.
 
 ## Como roda (o ambiente do Claude NÃO alcança TSE/IBGE)
 - Todo o download e processamento é no GitHub Actions (`.github/workflows/processar.yml`): push em `main` que mexa em `alvos.txt`, `votocenso/**`, `baixar_dados.sh` ou no workflow; disparo manual; e toda segunda 06:17 UTC (atualiza contas de campanha).
@@ -36,6 +36,9 @@ Para cada senador/deputado: de quais seções e locais de votação vieram os vo
 - Lista lateral e ranking abrem mostrando todos os candidatos (sem filtro de mapa, de eleitos ou de votos).
 - Contas de campanha: despesas contratadas + receitas; "dinheiro público" = Fundo Especial + Fundo Partidário. Parciais até a prestação final (1º turno: 03/11/2026).
 - Senador 2026: dois votos por eleitor; % sobre o total de votos válidos para senador.
+- Presidente: código 1 = 1º turno, 101 = 2º turno (CD_CARGO + 100 para 2º turno de majoritário). Candidatos vêm do `consulta_cand_<ano>_BR.csv`. Número de 2 dígitos é candidato (não legenda) em presidente/governador (`DOIS_DIGITOS`). Sem contas de campanha (campanha nacional ÷ votos da UF não faz sentido; `SEM_CONTAS`).
+- Seção → local: vale o `NR_LOCAL_VOTACAO` do próprio arquivo de votos (no 2º turno seções mudam de local); senão o cadastro de locais.
+- Downloads do TSE: zips em `dados/zips` (cache com chave por execução), baixados de novo só se o TSE publicar versão mais nova (`curl -z`); CSVs extraídos a cada execução. Censo em cache separado (`ibge-<UF>-v1`).
 
 ## Ideias em aberto
 - Outras UFs; comparação 2022 × 2026 por local.

@@ -32,6 +32,22 @@ def main():
         ]).to_csv(tmp / "dados/tse/consulta_cand_2022_SP.csv", sep=";", index=False, encoding="latin-1")
 
         tse_dir = tmp / "dados/tse"
+        # presidente: 1º e 2º turno no mesmo arquivo de votos; no 2º, a seção 1 vai para o local 1001
+        vs = pd.read_csv(tse_dir / "votacao_secao_2022_SP.csv", sep=";", encoding="latin-1", dtype=str)
+        base = vs[vs["CD_CARGO"] == "6"].drop_duplicates(["NR_ZONA", "NR_SECAO"])
+        pres = []
+        for turno, cands_p in (("1", {"13": 60, "22": 50, "30": 10}), ("2", {"13": 70, "22": 55})):
+            for _, r in base.iterrows():
+                for nr, q in cands_p.items():
+                    loc = "1001" if (turno == "2" and r["NR_SECAO"] == "1") else r["NR_LOCAL_VOTACAO"]
+                    pres.append({**r.to_dict(), "NR_TURNO": turno, "CD_CARGO": "1", "DS_CARGO": "Presidente",
+                                 "NR_VOTAVEL": nr, "NM_VOTAVEL": f"PRES {nr}", "QT_VOTOS": str(q), "NR_LOCAL_VOTACAO": loc})
+        pd.concat([vs, pd.DataFrame(pres)]).to_csv(tse_dir / "votacao_secao_2022_SP.csv", sep=";", index=False, encoding="latin-1")
+        pd.DataFrame([dict(NR_TURNO=t, SG_UF="BR", CD_CARGO="1", NR_CANDIDATO=n, NM_URNA_CANDIDATO=f"PRESIDENTE {n}",
+                           SG_PARTIDO=pt, DS_SIT_TOT_TURNO=sit)
+                      for t, n, pt, sit in (("1", "13", "P13", "2º TURNO"), ("1", "22", "P22", "2º TURNO"), ("1", "30", "P30", "NÃO ELEITO"),
+                                            ("2", "13", "P13", "ELEITO"), ("2", "22", "P22", "NÃO ELEITO"))]
+                     ).to_csv(tse_dir / "consulta_cand_2022_BR.csv", sep=";", index=False, encoding="latin-1")
         (tse_dir / "eleitorado_local_votacao_2022.csv").rename(tse_dir / "eleitorado_local_votacao_2022_SP.csv")
         ac = pd.read_csv(tse_dir / "eleitorado_local_votacao_2022_SP.csv", sep=";", encoding="latin-1", dtype=str).head(3)
         ac.assign(SG_UF="AC").to_csv(tse_dir / "eleitorado_local_votacao_2022_AC.csv", sep=";", index=False, encoding="latin-1")
@@ -64,7 +80,16 @@ def main():
         assert L["n"] == 40 and len(L["lat"]) == 40 and L["lat"].count(None) == 2
         assert sum(c["v"]) == cand["6_1111"]["votos"] == sum(c["s_v"])
         assert all(sv >= v for sv, v in zip(c["s_val"], c["s_v"]))
-        assert set(L["val"]) == {"5", "6", "7"}
+        assert set(L["val"]) == {"1", "101", "5", "6"}, set(L["val"])
+        assert meta["cargos"]["101"]["turno"] == 2 and meta["cargos"]["101"]["contas"] is False
+        assert cand["101_13"]["situacao"] == "ELEITO" and cand["1_13"]["situacao"] == "2º TURNO" and cand["1_30"]["detalhe"]
+        assert cand["101_13"]["votos"] == 70 * 120 and "contas" not in cand["1_13"]
+        p2 = json.loads(gzip.decompress((destino / "cand/101_13.json.gz").read_bytes()))
+        assert sum(p2["v"]) == 70 * 120
+        li_1001 = L["nr"].index(1001)
+        sec1 = [li for li, sc in zip(p2["s_li"], p2["s_sec"]) if sc == 1]
+        assert sec1 == [li_1001], (sec1, li_1001)  # seção que mudou de local no 2º turno
+        assert sum(L["val"]["101"]) == meta["cargos"]["101"]["validos_uf"] == 125 * 120
         assert sum(L["val"]["6"]) == meta["cargos"]["6"]["validos_uf"]
         assert len(L["ind"]["raio"]["renda_media_responsavel"]) == 40
         assert L["ind_mun"]["pop"][0] and L["ind_mun"]["renda_media_responsavel"][0] > 0, L["ind_mun"]["pop"]

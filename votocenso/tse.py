@@ -189,48 +189,73 @@ def selecionar(totais: pd.DataFrame, seletores: list[str], top: int) -> list[int
 
 
 # ------------------------------------------------------- vários cargos (portal)
-def carregar_candidatos(ano: int, uf: str) -> pd.DataFrame:
-    """consulta_cand: número, nome de urna, partido e situação final, por cargo.
+def carregar_candidatos(ano: int, uf: str, mapa: dict | None = None) -> pd.DataFrame:
+    """consulta_cand: número, nome de urna, partido e situação final, por código de cargo.
 
+    Lê o arquivo da UF e o nacional (BR, onde fica presidente). `mapa` leva (cargo, turno) ao
+    código usado no portal (ex.: (1, 2) -> 101 = presidente no 2º turno); sem mapa, só o 1º turno.
     Lê só as colunas necessárias (o arquivo traz CPF e e-mail, que não usamos).
     """
-    try:
-        caminho = _achar(config.DADOS_TSE, f"consulta_cand_{ano}_{uf}*.csv")
-    except FileNotFoundError:
-        return pd.DataFrame(columns=["CD_CARGO", "NR_CANDIDATO", "NM_URNA_CANDIDATO", "SG_PARTIDO", "DS_SIT_TOT_TURNO",
-                                     "DS_SITUACAO_CANDIDATURA", "DS_DETALHE_SITUACAO_CAND"])
+    vazio = pd.DataFrame(columns=["CD_CARGO", "NR_CANDIDATO", "NM_URNA_CANDIDATO", "SG_PARTIDO", "DS_SIT_TOT_TURNO"])
+    arquivos = [c for c in (config.DADOS_TSE / f"consulta_cand_{ano}_{uf}.csv", config.DADOS_TSE / f"consulta_cand_{ano}_BR.csv")
+                if c.exists()]
+    if not arquivos:
+        try:
+            arquivos = [_achar(config.DADOS_TSE, f"consulta_cand_{ano}_{uf}*.csv")]
+        except FileNotFoundError:
+            return vazio
+    mapa = mapa or {}
+    partes = [_ler_cadastro(c) for c in arquivos]
+    df = pd.concat(partes, ignore_index=True)
+    df["CD_CARGO"] = _int(df["CD_CARGO"])
+    df["NR_CANDIDATO"] = _int(df["NR_CANDIDATO"])
+    turno = _int(df["NR_TURNO"]) if "NR_TURNO" in df else pd.Series(1, index=df.index)
+    if mapa:
+        cod = [mapa.get((int(c), int(t))) if pd.notna(c) and pd.notna(t) else None for c, t in zip(df["CD_CARGO"], turno)]
+        df["CD_CARGO"] = pd.array(cod, dtype="Int64")
+        df = df.dropna(subset=["CD_CARGO"])
+    else:
+        df = df[turno == 1]
+    return df.drop_duplicates(["CD_CARGO", "NR_CANDIDATO"])
+
+
+def _ler_cadastro(caminho) -> pd.DataFrame:
     cab = pd.read_csv(caminho, sep=";", encoding="latin-1", nrows=0).columns.tolist()
     situacoes = [c for c in cab if c.startswith(("DS_SIT", "DS_DETALHE"))]
     print(f"   consulta_cand: colunas de situação {situacoes}", file=sys.stderr, flush=True)
     cols = ["NR_TURNO", "SG_UF", "CD_CARGO", "NR_CANDIDATO", "NM_URNA_CANDIDATO", "SG_PARTIDO"] + situacoes
     df = pd.concat(_blocos(caminho, cols, ["CD_CARGO", "NR_CANDIDATO"]), ignore_index=True)
+    print(f"   {caminho.name}: {len(df)} linhas; cargos/turnos {df.groupby(['CD_CARGO', 'NR_TURNO']).size().to_dict() if 'NR_TURNO' in df else ''}",
+          file=sys.stderr, flush=True)
     for c in situacoes:
         print(f"      {c}: {df[c].value_counts().head(8).to_dict()}", file=sys.stderr, flush=True)
-    if "NR_TURNO" in df:
-        df = df[df["NR_TURNO"] == "1"]
-    df["CD_CARGO"] = _int(df["CD_CARGO"])
-    df["NR_CANDIDATO"] = _int(df["NR_CANDIDATO"])
-    return df.drop_duplicates(["CD_CARGO", "NR_CANDIDATO"])
+    return df
 
 
-def votos_varios_cargos(ano: int, uf: str, cargos: list[int], escolher, turno: int = 1):
-    """Passada 1: totais por (cargo, número) e válidos por (cargo, seção).
-    escolher(totais) -> conjunto de (cargo, número) a detalhar.
+def votos_varios_cargos(ano: int, uf: str, mapa: dict, escolher):
+    """Passada 1: totais por (código, número) e válidos por (código, seção).
+    mapa: (CD_CARGO, NR_TURNO) -> código do portal (ex.: {(6, 1): 6, (1, 2): 101}).
+    escolher(totais) -> conjunto de (código, número) a detalhar.
     Passada 2: linhas candidato x seção dos escolhidos.
+    Saídas trazem NR_LOCAL_VOTACAO do próprio arquivo de votos (no 2º turno algumas seções mudam de local).
     """
     caminho = _achar(config.DADOS_TSE, f"votacao_secao_{ano}_{uf}*.csv")
     cols = ["NR_TURNO", "CD_CARGO", "CD_MUNICIPIO", "NR_ZONA", "NR_SECAO",
             "NR_VOTAVEL", "NM_VOTAVEL", "QT_VOTOS", "NR_LOCAL_VOTACAO"]
     obrig = ["CD_CARGO", "CD_MUNICIPIO", "NR_ZONA", "NR_SECAO", "NR_VOTAVEL", "NM_VOTAVEL", "QT_VOTOS"]
-    alvo = {str(c) for c in cargos}
+    alvo = {f"{c}|{t}": cod for (c, t), cod in mapa.items()}
+    vistos: dict = {}
 
     def filtrar(b):
-        b = b[b["CD_CARGO"].isin(alvo)]
-        if "NR_TURNO" in b:
-            b = b[b["NR_TURNO"] == str(turno)]
-        b = b.copy()
-        for c in ["CD_CARGO"] + CHAVE_SECAO + ["NR_VOTAVEL", "QT_VOTOS"]:
+        turno = b["NR_TURNO"] if "NR_TURNO" in b else "1"
+        chave = b["CD_CARGO"].astype(str) + "|" + turno
+        for k, n in chave.value_counts().items():
+            vistos[k] = vistos.get(k, 0) + int(n)
+        b = b[chave.isin(alvo)].copy()
+        b["CD_CARGO"] = chave[b.index].map(alvo).astype("Int64")
+        for c in CHAVE_SECAO + ["NR_VOTAVEL", "QT_VOTOS"]:
             b[c] = _int(b[c])
+        b["NR_LOCAL_VOTACAO"] = _int(b["NR_LOCAL_VOTACAO"]) if "NR_LOCAL_VOTACAO" in b else pd.NA
         return b
 
     tot, val, nomes = [], [], {}
@@ -241,13 +266,14 @@ def votos_varios_cargos(ano: int, uf: str, cargos: list[int], escolher, turno: i
         tot.append(b.groupby(["CD_CARGO", "NR_VOTAVEL"])["QT_VOTOS"].sum())
         nomes.update(dict(zip(zip(b["CD_CARGO"], b["NR_VOTAVEL"]), b["NM_VOTAVEL"])))
         v = b[~b["NR_VOTAVEL"].isin(config.NAO_VALIDOS)]
-        val.append(v.groupby(["CD_CARGO"] + CHAVE_SECAO)["QT_VOTOS"].sum())
+        val.append(v.groupby(["CD_CARGO"] + CHAVE_SECAO + ["NR_LOCAL_VOTACAO"], dropna=False)["QT_VOTOS"].sum())
+    print(f"   {caminho.name}: linhas por cargo|turno no arquivo {dict(sorted(vistos.items()))}", file=sys.stderr, flush=True)
     if not tot:
-        raise ValueError(f"Nenhum voto dos cargos {cargos} em {caminho.name}")
+        raise ValueError(f"Nenhum voto de {sorted(mapa)} em {caminho.name}")
     totais = pd.concat(tot).groupby(level=[0, 1]).sum().rename("votos").reset_index()
     totais["NM_VOTAVEL"] = [nomes.get(k) for k in zip(totais["CD_CARGO"], totais["NR_VOTAVEL"])]
     totais = totais[~totais["NR_VOTAVEL"].isin(config.NAO_VALIDOS)]
-    validos = pd.concat(val).groupby(level=[0, 1, 2, 3]).sum().rename("validos").reset_index()
+    validos = pd.concat(val).groupby(level=[0, 1, 2, 3, 4], dropna=False).sum().rename("validos").reset_index()
 
     escolhidos = escolher(totais)
     partes = []
@@ -256,5 +282,5 @@ def votos_varios_cargos(ano: int, uf: str, cargos: list[int], escolher, turno: i
         chave = list(zip(b["CD_CARGO"], b["NR_VOTAVEL"]))
         partes.append(b[[k in escolhidos for k in chave]])
     votos = pd.concat(partes, ignore_index=True)
-    votos = votos.groupby(["CD_CARGO", "NR_VOTAVEL"] + CHAVE_SECAO, as_index=False)["QT_VOTOS"].sum()
+    votos = votos.groupby(["CD_CARGO", "NR_VOTAVEL"] + CHAVE_SECAO + ["NR_LOCAL_VOTACAO"], as_index=False, dropna=False)["QT_VOTOS"].sum()
     return votos, validos, totais

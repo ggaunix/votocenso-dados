@@ -26,8 +26,22 @@ from . import censo, config, contas, entorno, tse
 
 PRAZO_CONTAS_FINAL = {2026: dt.date(2026, 11, 3)}  # 1º turno; depois disso o TSE ainda leva dias para publicar
 
-NOMES_CARGO = {5: "Senador", 6: "Deputado federal", 7: "Deputado estadual", 8: "Deputado distrital"}
-NAO_ELEITOS = {5: 5, 6: 30, 7: 30, 8: 15}  # mínimo de não eleitos com mapa, mesmo abaixo do corte de votos
+# Código do portal = CD_CARGO do TSE; 2º turno de cargo majoritário = CD_CARGO + 100.
+NOMES_CARGO = {1: "Presidente – 1º turno", 101: "Presidente – 2º turno", 5: "Senador",
+               6: "Deputado federal", 7: "Deputado estadual", 8: "Deputado distrital"}
+NAO_ELEITOS = {1: 20, 101: 2, 5: 5, 6: 30, 7: 30, 8: 15}  # mínimo de não eleitos com mapa, mesmo abaixo do corte de votos
+# majoritários com número de 2 dígitos: para eles, número < 100 é candidato, não voto de legenda
+DOIS_DIGITOS = {1, 101, 3, 103}
+# campanha nacional: dividir o gasto pelos votos da UF não faz sentido; contas não entram
+SEM_CONTAS = {1, 101}
+
+
+
+
+def e_candidato(cargo: pd.Series, nr: pd.Series) -> pd.Series:
+    return (nr >= 100) | cargo.isin(DOIS_DIGITOS)
+
+
 MIN_VOTOS_MAPA = 1000  # todo candidato com pelo menos isso ganha mapa e perfil
 
 INDICADORES = [  # chave, rótulo, unidade, casas decimais
@@ -94,20 +108,21 @@ def main(argv=None):
     p.add_argument("--min-votos", dest="min_votos", type=int, default=MIN_VOTOS_MAPA)
     a = p.parse_args(argv)
     destino = a.saida or (config.RAIZ / "portal_dados" / f"{a.ano}_{a.uf}")
-    cargos = [5, 6, 8] if a.uf == "DF" else [5, 6, 7]
+    base = [5, 6, 8] if a.uf == "DF" else [5, 6, 7]
+    mapa = {(c, 1): c for c in base} | {(1, 1): 1, (1, 2): 101}
 
     log("candidatos (consulta_cand)...")
-    cands = tse.carregar_candidatos(a.ano, a.uf)
+    cands = tse.carregar_candidatos(a.ano, a.uf, mapa)
 
     def escolher(totais):
-        t = totais[totais["NR_VOTAVEL"] >= 100].merge(
+        t = totais[e_candidato(totais["CD_CARGO"], totais["NR_VOTAVEL"])].merge(
             cands, left_on=["CD_CARGO", "NR_VOTAVEL"], right_on=["CD_CARGO", "NR_CANDIDATO"], how="left")
         sit = t["DS_SIT_TOT_TURNO"].fillna("").str.upper()
         eleito = sit.str.startswith("ELEITO")
         sel = set(zip(t.loc[eleito, "CD_CARGO"], t.loc[eleito, "NR_VOTAVEL"]))
-        for cargo in cargos:
+        for cargo in sorted(t["CD_CARGO"].dropna().unique()):
             resto = t[(t["CD_CARGO"] == cargo) & ~eleito].nlargest(
-                NAO_ELEITOS[cargo] * (1 if eleito.any() else 4), "votos")
+                NAO_ELEITOS.get(int(cargo), 10) * (1 if eleito.any() else 4), "votos")
             sel |= set(zip(resto["CD_CARGO"], resto["NR_VOTAVEL"]))
         corte = t[t["votos"] >= a.min_votos]
         sel |= set(zip(corte["CD_CARGO"], corte["NR_VOTAVEL"]))
@@ -115,8 +130,11 @@ def main(argv=None):
         return {(int(c), int(n)) for c, n in sel}
 
     log("votos por seção (passadas 1 e 2)...")
-    votos, validos, totais = tse.votos_varios_cargos(a.ano, a.uf, cargos, escolher)
+    votos, validos, totais = tse.votos_varios_cargos(a.ano, a.uf, mapa, escolher)
     escolhidos = set(zip(votos["CD_CARGO"], votos["NR_VOTAVEL"]))
+    cargos = sorted(int(c) for c in totais["CD_CARGO"].dropna().unique())
+    faltam = [NOMES_CARGO[c] for c in mapa.values() if c not in cargos]
+    log(f"   cargos com voto no arquivo: {[NOMES_CARGO[c] for c in cargos]}" + (f"; ainda sem dados: {faltam}" if faltam else ""))
 
     log("locais de votação...")
     secoes, locais = tse.carregar_locais(a.ano, a.uf)
@@ -132,12 +150,24 @@ def main(argv=None):
         centroides, contem = pd.read_csv(config.CACHE / f"centroides_{a.uf}.csv", dtype={"CD_SETOR": str}), None
     perfil = entorno.perfil_locais(locais, setores, centroides, contem, a.raio, NIVEIS)
 
-    # seção -> índice do local
+    # seção -> índice do local. Vale primeiro o local informado no próprio arquivo de votos
+    # (no 2º turno algumas seções mudam de endereço); senão, o do cadastro de locais.
     sec = secoes.merge(locais[tse.CHAVE_LOCAL].reset_index().rename(columns={"index": "li"}),
                        on=tse.CHAVE_LOCAL, how="left")[tse.CHAVE_SECAO + ["li"]]
+    chave_li = locais[tse.CHAVE_LOCAL].astype("Int64").reset_index().rename(columns={"index": "li_voto"})
+    chave_sec = sec.rename(columns={"li": "li_cad"})
+
+    def a_local(df):
+        k = df[tse.CHAVE_SECAO + ["NR_LOCAL_VOTACAO"]].astype("Int64").reset_index()
+        k = k.merge(chave_li, on=tse.CHAVE_LOCAL, how="left").merge(chave_sec, on=tse.CHAVE_SECAO, how="left")
+        k = k.set_index("index").reindex(df.index)
+        mudou = int((k["li_voto"].notna() & k["li_cad"].notna() & (k["li_voto"] != k["li_cad"])).sum())
+        return k["li_voto"].astype("float").fillna(k["li_cad"].astype("float")), mudou
 
     log("montando arquivos...")
-    val_sec = validos.merge(sec, on=tse.CHAVE_SECAO, how="left")
+    val_sec = validos.copy()
+    val_sec["li"], mud = a_local(val_sec)
+    log(f"   linhas cargo×seção em local diferente do cadastro: {mud}")
     val_sec = val_sec.dropna(subset=["li"]).astype({"li": int})
     val_local = val_sec.groupby(["CD_CARGO", "li"])["validos"].sum()
 
@@ -179,11 +209,13 @@ def main(argv=None):
     log(f"   locais.json: {len(locais)} locais, {tam / 1e6:.1f} MB antes de comprimir")
 
     # candidatos
-    v = votos.merge(sec, on=tse.CHAVE_SECAO, how="left")
+    v = votos.copy()
+    v["li"], _ = a_local(v)
     sem_local = int(v.loc[v["li"].isna(), "QT_VOTOS"].sum())
     v = v.dropna(subset=["li"])
     v["li"] = v["li"].astype(int)
-    v = v.merge(validos, on=["CD_CARGO"] + tse.CHAVE_SECAO, how="left")
+    val_por_sec = validos.groupby(["CD_CARGO"] + tse.CHAVE_SECAO, as_index=False)["validos"].sum()
+    v = v.merge(val_por_sec, on=["CD_CARGO"] + tse.CHAVE_SECAO, how="left")
     for (cargo, nr), g in v.groupby(["CD_CARGO", "NR_VOTAVEL"]):
         por_local = g.groupby("li")["QT_VOTOS"].sum()
         g = g.sort_values(["li", "NR_SECAO"])
@@ -196,7 +228,7 @@ def main(argv=None):
 
     # lista completa: quem teve voto (votacao_secao) + todos os registrados no consulta_cand,
     # inclusive indeferidos, renúncias e quem ficou com zero voto
-    comvoto = totais[totais["NR_VOTAVEL"] >= 100].rename(columns={"NR_VOTAVEL": "NR_CANDIDATO"})
+    comvoto = totais[e_candidato(totais["CD_CARGO"], totais["NR_VOTAVEL"])].rename(columns={"NR_VOTAVEL": "NR_CANDIDATO"})
     reg = cands[cands["CD_CARGO"].isin(cargos)] if len(cands) else cands
     t = comvoto.merge(reg, on=["CD_CARGO", "NR_CANDIDATO"], how="outer")
     t["votos"] = t["votos"].fillna(0).astype(int)
@@ -239,6 +271,8 @@ def main(argv=None):
             por = {(int(c), int(n)): r for c, n, r in zip(tab["CD_CARGO"], tab["NR_CANDIDATO"], tab.to_dict("records"))}
             n_com = 0
             for c in lista_cand:
+                if c["cargo"] in SEM_CONTAS:
+                    continue
                 r = por.get((c["cargo"], c["nr"]))
                 if r:
                     c["contas"] = {"desp": round(float(r.get("despesas", 0)), 2), "rec": round(float(r.get("receitas", 0)), 2),
@@ -263,11 +297,12 @@ def main(argv=None):
         log("   geopandas ausente: limites.json não gerado")
 
     meta = {
-        "ano": a.ano, "uf": a.uf, "turno": 1, "raio_m": a.raio, "min_votos_mapa": a.min_votos,
+        "ano": a.ano, "uf": a.uf, "turno": 2 if any(c > 100 for c in cargos) else 1, "raio_m": a.raio, "min_votos_mapa": a.min_votos,
         "gerado_em": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"),
         "municipios": muns,
         "cargos": {str(c): {"nome": NOMES_CARGO[c],
-                            "validos_uf": int(validos.loc[validos["CD_CARGO"] == c, "validos"].sum())}
+                            "validos_uf": int(validos.loc[validos["CD_CARGO"] == c, "validos"].sum()),
+                            "turno": 2 if c > 100 else 1, "contas": c not in SEM_CONTAS}
                    for c in cargos},
         "candidatos": lista_cand,
         "contas": info_contas,

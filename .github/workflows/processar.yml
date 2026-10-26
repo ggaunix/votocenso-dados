@@ -52,30 +52,39 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
 
-      - name: restaurar downloads do cache
-        id: cache
+      - name: restaurar Censo (IBGE) do cache
+        id: cache-ibge
         uses: actions/cache/restore@v4
         with:
-          path: |
-            dados/tse
-            dados/ibge
-          key: dados-${{ matrix.uf }}-${{ matrix.ano }}-v2
+          path: dados/ibge
+          key: ibge-${{ matrix.uf }}-v1
+
+      - name: restaurar zips do TSE do cache
+        uses: actions/cache/restore@v4
+        with:
+          path: dados/zips
+          key: tse-${{ matrix.uf }}-${{ matrix.ano }}-${{ github.run_id }}
+          restore-keys: tse-${{ matrix.uf }}-${{ matrix.ano }}-
 
       - name: baixar TSE e IBGE
         run: |
           mkdir -p diagnostico/${{ matrix.ano }}_${{ matrix.uf }}
           set -o pipefail
           ./baixar_dados.sh ${{ matrix.uf }} ${{ matrix.ano }} 2>&1 | tee diagnostico/${{ matrix.ano }}_${{ matrix.uf }}/1_download.txt
-          ls -la dados/tse dados/ibge 2>&1 | tee -a diagnostico/${{ matrix.ano }}_${{ matrix.uf }}/1_download.txt
+          ls -la dados/zips dados/tse dados/ibge 2>&1 | tee -a diagnostico/${{ matrix.ano }}_${{ matrix.uf }}/1_download.txt
 
-      - name: guardar downloads no cache
-        if: steps.cache.outputs.cache-hit != 'true'
+      - name: guardar Censo (IBGE) no cache
+        if: steps.cache-ibge.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: |
-            dados/tse
-            dados/ibge
-          key: dados-${{ matrix.uf }}-${{ matrix.ano }}-v2
+          path: dados/ibge
+          key: ibge-${{ matrix.uf }}-v1
+
+      - name: guardar zips do TSE no cache
+        uses: actions/cache/save@v4
+        with:
+          path: dados/zips
+          key: tse-${{ matrix.uf }}-${{ matrix.ano }}-${{ github.run_id }}
 
       - name: conferir códigos do censo no dicionário
         run: |
