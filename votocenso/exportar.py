@@ -24,7 +24,8 @@ import pandas as pd
 
 from . import censo, config, contas, entorno, tse
 
-PRAZO_CONTAS_FINAL = {2026: dt.date(2026, 11, 3)}  # 1º turno; depois disso o TSE ainda leva dias para publicar
+# prazo da prestação de contas final: quem disputou só o 1º turno / quem foi ao 2º turno
+PRAZO_CONTAS_FINAL = {2026: {1: dt.date(2026, 11, 3), 2: dt.date(2026, 11, 14)}}
 
 # Código do portal = CD_CARGO do TSE; 2º turno de cargo majoritário = CD_CARGO + 100.
 NOMES_CARGO = {1: "Presidente – 1º turno", 101: "Presidente – 2º turno",
@@ -283,8 +284,11 @@ def main(argv=None):
                     c["contas"] = {"desp": round(float(r.get("despesas", 0)), 2), "rec": round(float(r.get("receitas", 0)), 2),
                                    "pub": round(float(r.get("publico", 0)), 2)}
                     n_com += 1
-            prazo = PRAZO_CONTAS_FINAL.get(a.ano)
-            final = prazo is not None and dt.date.today() > prazo + dt.timedelta(days=10)
+            # cargo com contas na tela que teve 2º turno (ex.: governador 3 com 103) só fecha no prazo do 2º turno
+            com_2t = any(c - 100 in cargos and c - 100 not in SEM_CONTAS for c in cargos if c > 100)
+            prazos = PRAZO_CONTAS_FINAL.get(a.ano, {})
+            prazo = prazos.get(2 if com_2t else 1)
+            final = prazo is not None and dt.date.today() > prazo
             info_contas = {**info, "situacao": "final" if final else "parcial",
                            "prazo_final": prazo.isoformat() if prazo else None, "candidatos_com_contas": n_com}
             log(f"   contas: {n_com} candidatos com prestação de contas ({info_contas['situacao']}, ref. {info.get('referencia')})")

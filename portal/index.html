@@ -573,8 +573,8 @@ function desenharContas(c) {
   const prazo = info.prazo_final ? new Date(info.prazo_final + "T12:00:00").toLocaleDateString("pt-BR") : "";
   const situ = info.situacao === "parcial"
     ? `parcial: a prestação final vence em ${prazo}`
-    : "prestação final";
-  const dica = `Valores declarados pela campanha ao TSE (prestação de contas). Despesas são as contratadas pela campanha. Dinheiro público é o que veio do Fundo Eleitoral (FEFC) e do Fundo Partidário, inclusive repassado pelo partido. ${info.situacao === "parcial" ? `Os números ainda são parciais: a prestação de contas final do 1º turno vence em ${prazo}, e este site atualiza toda segunda-feira.` : ""}`;
+    : `prestação final, prazo encerrado em ${prazo}`;
+  const dica = `Valores declarados pela campanha ao TSE (prestação de contas). Despesas são as contratadas pela campanha. Dinheiro público é o que veio do Fundo Eleitoral (FEFC) e do Fundo Partidário, inclusive repassado pelo partido. ${info.situacao === "parcial" ? `Os números ainda são parciais: a prestação de contas final vence em ${prazo}, e este site atualiza toda segunda-feira.` : `O prazo da prestação final terminou em ${prazo}. A campanha ainda pode retificar as contas, e quem não entregou fica sem números aqui; o site atualiza toda segunda-feira.`}`;
   const k = c.contas;
   if (!k) {
     alvo.innerHTML = `Campanha: nenhuma prestação de contas publicada pelo TSE${ref} <span class="nota">(${situ})</span> <button type="button" class="ajuda" aria-label="O que é isso? ${esc(dica)}" data-dica="${esc(dica)}">?</button>`;
@@ -1045,7 +1045,7 @@ function montarRanking() {
   $("#rk-partido").value = R.partido;
   const info = E.meta.contas;
   $("#rk-expl").textContent = info
-    ? `Despesas contratadas e receitas declaradas pelas campanhas ao TSE${info.referencia ? " até " + info.referencia : ""}. ${info.situacao === "parcial" ? "Os números ainda são parciais: a prestação final do 1º turno vence em " + new Date(info.prazo_final + "T12:00:00").toLocaleDateString("pt-BR") + "." : ""} Dinheiro público é o que veio do Fundo Eleitoral e do Fundo Partidário. Clique num nome para ver de onde vieram os votos.`
+    ? `Despesas contratadas e receitas declaradas pelas campanhas ao TSE${info.referencia ? " até " + info.referencia : ""}. ${info.situacao === "parcial" ? "Os números ainda são parciais: a prestação final vence em " + new Date(info.prazo_final + "T12:00:00").toLocaleDateString("pt-BR") + "." : "Prestação final: o prazo terminou em " + new Date(info.prazo_final + "T12:00:00").toLocaleDateString("pt-BR") + "; ainda cabem retificações."} Dinheiro público é o que veio do Fundo Eleitoral e do Fundo Partidário. Clique num nome para ver de onde vieram os votos.`
     : "Este recorte ainda não tem dados de prestação de contas.";
   desenharRanking();
 }

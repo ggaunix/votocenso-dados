@@ -7,7 +7,7 @@ Para cada senador/deputado: de quais seções e locais de votação vieram os vo
 
 - Site público: https://ggaunix.github.io/votocenso-dados/ (GitHub Pages, branch `gh-pages`, gerado pelo workflow). `#ranking` abre o ranking de campanha.
 - Cópia privada no claude.ai ("Origem do Voto"): limite de 511 arquivos, então fica só com eleitos + 30 suplentes por cargo; o site público tem todos.
-- Recorte atual: SP, eleições 2026 (presidente 1º e 2º turno; senador e deputados no 1º) × Censo 2022.
+- Recorte atual: SP, eleições 2026 (presidente 1º e 2º turno; governador, senador e deputados no 1º — Tarcísio eleito no 1º turno) × Censo 2022.
 
 ## Como roda (o ambiente do Claude NÃO alcança TSE/IBGE)
 - Todo o download e processamento é no GitHub Actions (`.github/workflows/processar.yml`): push em `main` que mexa em `alvos.txt`, `votocenso/**`, `baixar_dados.sh` ou no workflow; disparo manual; e toda segunda 06:17 UTC (atualiza contas de campanha).
@@ -34,7 +34,7 @@ Para cada senador/deputado: de quais seções e locais de votação vieram os vo
 - Mapa para todo candidato com ≥ 1.000 votos (`MIN_VOTOS_MAPA` em `exportar.py`).
 - Lista de candidatos = cadastro completo do `consulta_cand` (outer join com os votos): SP 2026 tem 1.129 dep. federais e 1.429 estaduais (TSE divulga 1.131 e 1.430). 142 sem voto válido: o `consulta_cand` 2026 não traz o motivo (`DS_SITUACAO_CANDIDATURA` = "#NE", `DS_SIT_TOT_TURNO` = "#NULO"); o site mostra "sem voto válido" sem afirmar a causa.
 - Lista lateral e ranking abrem mostrando todos os candidatos (sem filtro de mapa, de eleitos ou de votos).
-- Contas de campanha: despesas contratadas + receitas; "dinheiro público" = Fundo Especial + Fundo Partidário. Parciais até a prestação final (1º turno: 03/11/2026).
+- Contas de campanha: despesas contratadas + receitas; "dinheiro público" = Fundo Especial + Fundo Partidário. Marcadas como finais depois do prazo da prestação final (2026: 03/11 para quem disputou só o 1º turno; 14/11 para quem foi ao 2º; `PRAZO_CONTAS_FINAL`). Retificações e entregas atrasadas entram na rodada semanal.
 - Senador 2026: dois votos por eleitor; % sobre o total de votos válidos para senador.
 - Presidente (1/101) e governador (3/103): 2º turno = CD_CARGO + 100. Votos de presidente vêm do arquivo nacional `votacao_secao_<ano>_BR.zip`, recortado para a UF no download (`votacao_secao_<ano>_BR_<UF>.csv`); o arquivo da UF não tem presidente. Candidatos a presidente vêm do `consulta_cand_<ano>_BR.csv`. Número de 2 dígitos é candidato (não legenda) em presidente/governador (`DOIS_DIGITOS`). Sem contas de campanha (campanha nacional ÷ votos da UF não faz sentido; `SEM_CONTAS`).
 - Seção → local: vale o `NR_LOCAL_VOTACAO` do próprio arquivo de votos (no 2º turno seções mudam de local); senão o cadastro de locais.
