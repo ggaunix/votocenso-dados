@@ -6,7 +6,7 @@ candidatos (consulta_cand)...
    consulta_cand: colunas de situação ['DS_SITUACAO_CANDIDATURA', 'DS_SIT_TOT_TURNO']
    consulta_cand_2026_BR.csv: 32 linhas; cargos/turnos {('1', '1'): 14, ('1', '2'): 2, ('2', '1'): 14, ('2', '2'): 2}
       DS_SITUACAO_CANDIDATURA: {'#NE': 32}
-      DS_SIT_TOT_TURNO: {'NÃO ELEITO': 24, '2º TURNO': 4, 'ELEITO': 2, '#NULO': 2}
+      DS_SIT_TOT_TURNO: {'NÃO ELEITO': 24, '2º TURNO': 4, '#NULO': 2, 'ELEITO': 2}
 votos por seção (passadas 1 e 2)...
    votacao_secao_2026_SP.csv, votacao_secao_2026_BR_SP.csv: linhas por cargo|turno {'1|1': 848063, '1|2': 410145, '3|1': 579514, '5|1': 1149273, '6|1': 7401888, '7|1': 7912959}
    candidatos com mapa: 1374 (eleitos + todos com 1000 votos ou mais)
@@ -42,6 +42,6 @@ montando arquivos...
       6/5500: total R$ 3,198,936; {'PUBLICIDADE POR MATERIAIS IMPRESSOS': 1169031.0, 'DESPESAS COM PESSOAL': 825813.0, 'DIVERSAS A ESPECIFICAR': 270301.0, 'CESSAO OU LOCACAO DE VEICULOS': 255127.0, 'SERVICOS ADVOCATICIOS': 195000.0, 'ALIMENTACAO': 134119.0}
    receitas_candidatos_2026_SP.csv: valor em VR_RECEITA; colunas usadas ['CD_CARGO', 'NR_CANDIDATO', 'DS_FONTE_RECEITA', 'DT_GERACAO', 'DT_RECEITA', 'VR_RECEITA']
    fontes de receita: {'OUTROS RECURSOS': 18891, 'FUNDO ESPECIAL': 7594, 'FUNDO PARTIDARIO': 6862, '#NULO': 379}
-   contas: 2553 candidatos com prestação de contas (final, ref. 08/11/2026)
+   contas: 2553 candidatos com prestação de contas (final, ref. 09/11/2026)
 pronto: /home/runner/work/votocenso-dados/votocenso-dados/portal_dados/2026_SP (1374 candidatos detalhados)
 70M	portal_dados/2026_SP
