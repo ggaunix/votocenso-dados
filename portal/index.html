@@ -574,7 +574,7 @@ function desenharContas(c) {
   const situ = info.situacao === "parcial"
     ? `parcial: a prestação final vence em ${prazo}`
     : `prestação final, prazo encerrado em ${prazo}`;
-  const dica = `Valores declarados pela campanha ao TSE (prestação de contas). Despesas são as contratadas pela campanha. Dinheiro público é o que veio do Fundo Eleitoral (FEFC) e do Fundo Partidário, inclusive repassado pelo partido. ${info.situacao === "parcial" ? `Os números ainda são parciais: a prestação de contas final vence em ${prazo}, e este site atualiza toda segunda-feira.` : `O prazo da prestação final terminou em ${prazo}. A campanha ainda pode retificar as contas, e quem não entregou fica sem números aqui; o site atualiza toda segunda-feira.`}`;
+  const dica = `Valores declarados pela campanha ao TSE (prestação de contas). Despesas são as contratadas pela campanha. Honorários de advogado e de contador contam como gasto eleitoral, mas a lei os deixa fora do teto de gastos (Lei 9.504, art. 26, § 4º). Dinheiro público é o que veio do Fundo Eleitoral (FEFC) e do Fundo Partidário, inclusive repassado pelo partido. ${info.situacao === "parcial" ? `Os números ainda são parciais: a prestação de contas final vence em ${prazo}, e este site atualiza toda segunda-feira.` : `O prazo da prestação final terminou em ${prazo}. A campanha ainda pode retificar as contas, e quem não entregou fica sem números aqui; o site atualiza toda segunda-feira.`}`;
   const k = c.contas;
   if (!k) {
     alvo.innerHTML = `Campanha: nenhuma prestação de contas publicada pelo TSE${ref} <span class="nota">(${situ})</span> <button type="button" class="ajuda" aria-label="O que é isso? ${esc(dica)}" data-dica="${esc(dica)}">?</button>`;
@@ -582,7 +582,8 @@ function desenharContas(c) {
   }
   const pctPub = k.rec ? ` (${fmt.format(Math.round(100 * k.pub / k.rec))}%)` : "";
   const porVoto = k.desp && c.votos ? ` · <b>${fmtR2.format(k.desp / c.votos)}</b> por voto` : "";
-  alvo.innerHTML = `Campanha${ref}: <b>${fmtRc.format(k.desp)}</b> em despesas · <b>${fmtRc.format(k.rec)}</b> arrecadados, `
+  const hon = k.hon ? ` (${fmtRc.format(k.hon)} de advogado e contador, fora do teto de gastos)` : "";
+  alvo.innerHTML = `Campanha${ref}: <b>${fmtRc.format(k.desp)}</b> em despesas${hon} · <b>${fmtRc.format(k.rec)}</b> arrecadados, `
     + `<b>${fmtRc.format(k.pub)}</b>${pctPub} de dinheiro público${porVoto} <span class="nota">(${situ})</span> `
     + `<button type="button" class="ajuda" aria-label="O que é isso? ${esc(dica)}" data-dica="${esc(dica)}">?</button>`;
 }
@@ -1031,7 +1032,7 @@ function linhasRanking() {
       return { id: c.id, nome: c.nome, partido: c.partido, situacao: c.situacao, eleito: eleito(c), detalhe: c.detalhe, votos: c.votos,
         desp: k ? k.desp : null, rec: k ? k.rec : null, pub: k ? k.pub : null,
         pctpub: k && k.rec ? 100 * k.pub / k.rec : null, porvoto: k && c.votos ? k.desp / c.votos : null, pubvoto: k && c.votos ? k.pub / c.votos : null,
-        saldo: k ? k.rec - k.desp : null };
+        saldo: k ? k.rec - k.desp : null, hon: k ? (k.hon || 0) : null, teto: k ? k.desp - (k.hon || 0) : null };
     });
 }
 
@@ -1079,7 +1080,9 @@ function desenharRanking() {
     { k: "partido", t: "Partido", f: r => esc(r.partido) },
     { k: "eleito", t: "Situação", f: r => pilulaSituacao(r) },
     { k: "votos", t: "Votos", n: true, f: r => fmt.format(r.votos), d: "Votos nominais válidos no 1º turno." },
-    { k: "desp", t: "Gasto", n: true, f: r => rc(r.desp), d: "Despesas contratadas declaradas pela campanha ao TSE até a data dos dados. Parcial até a prestação de contas final." },
+    { k: "desp", t: "Gasto", n: true, f: r => rc(r.desp), d: "Despesas contratadas declaradas pela campanha ao TSE, incluindo honorários de advogado e contador." },
+    { k: "hon", t: "Advogado e contador", n: true, f: r => rc(r.hon), d: "Honorários de serviços advocatícios e contábeis. Contam como gasto eleitoral, mas ficam fora do teto de gastos (Lei 9.504, art. 26, § 4º)." },
+    { k: "teto", t: "Sujeito ao teto", n: true, f: r => rc(r.teto), d: "Gasto menos honorários de advogado e contador: é o valor que a lei compara com o teto de gastos do cargo. Em 2026 os tetos repetem os de 2022 (ex.: deputado federal R$ 3,18 mi; deputado estadual R$ 1,27 mi; governador de SP no 1º turno R$ 26,6 mi)." },
     { k: "porvoto", t: "Gasto por voto", n: true, f: r => r$(r.porvoto), d: "Gasto ÷ votos. Quanto a campanha gastou para cada voto que recebeu. Com poucos votos o valor dispara." },
     { k: "rec", t: "Arrecadado", n: true, f: r => rc(r.rec), d: "Todo dinheiro que entrou na campanha: fundos públicos, doações de pessoas, recursos do próprio candidato e repasses do partido." },
     { k: "pub", t: "Público recebido", n: true, f: r => rc(r.pub), d: "Quanto da arrecadação veio de dinheiro público: Fundo Eleitoral (FEFC) e Fundo Partidário, inclusive o repassado pelo partido. É dinheiro recebido, não necessariamente gasto." },
@@ -1097,8 +1100,8 @@ function desenharRanking() {
 }
 
 async function rankingCSV() {
-  const b = $("#rk-csv"), cab = ["candidato", "numero", "partido", "situacao", "votos", "gasto", "gasto_por_voto", "arrecadado", "publico_recebido", "pct_publico", "publico_recebido_por_voto", "saldo"];
-  const corpo = (E.rkLinhas || []).map(r => [csvQ(r.nome), r.id.split("_")[1], csvQ(r.partido), csvQ(r.situacao), r.votos, csvN(r.desp), csvN(r.porvoto), csvN(r.rec), csvN(r.pub), csvN(r.pctpub), csvN(r.pubvoto), csvN(r.saldo)].join(";"));
+  const b = $("#rk-csv"), cab = ["candidato", "numero", "partido", "situacao", "votos", "gasto", "advogado_contador", "sujeito_ao_teto", "gasto_por_voto", "arrecadado", "publico_recebido", "pct_publico", "publico_recebido_por_voto", "saldo"];
+  const corpo = (E.rkLinhas || []).map(r => [csvQ(r.nome), r.id.split("_")[1], csvQ(r.partido), csvQ(r.situacao), r.votos, csvN(r.desp), csvN(r.hon), csvN(r.teto), csvN(r.porvoto), csvN(r.rec), csvN(r.pub), csvN(r.pctpub), csvN(r.pubvoto), csvN(r.saldo)].join(";"));
   const nome = `${E.recorte}_ranking_${norm(E.meta.cargos[E.rk.cargo].nome).replace(/[^A-Z0-9]+/g, "_")}.csv`.toLowerCase();
   b.disabled = true;
   try { await salvarArquivo(nome, "﻿" + cab.join(";") + "\n" + corpo.join("\n")); b.textContent = "Baixado"; }
