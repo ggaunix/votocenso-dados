@@ -49,11 +49,19 @@ def carregar(ano: int, uf: str):
                           "DS_ORIGEM_DESPESA", "DS_DESPESA", "NR_DOCUMENTO", "SQ_CANDIDATO"])
         cab = pd.read_csv(f_desp, sep=";", encoding="latin-1", nrows=0).columns.tolist()
         print(f"   despesas: colunas do arquivo {cab}", file=sys.stderr, flush=True)
-        # duplicatas: a mesma despesa (SQ_DESPESA) contada mais de uma vez
-        if "SQ_DESPESA" in d:
-            dup = d.duplicated(["SQ_DESPESA"], keep=False) & (d["SQ_DESPESA"] != "")
-            print(f"   despesas: {len(d)} linhas, {int(dup.sum())} com SQ_DESPESA repetido "
-                  f"(R$ {d.loc[dup, 'valor'].sum():,.0f})", file=sys.stderr, flush=True)
+        # duplicatas: linha idêntica em todas as colunas = mesma despesa contada duas vezes
+        bruto = pd.read_csv(f_desp, sep=";", encoding="latin-1", dtype=str, keep_default_na=False)
+        ident = bruto.duplicated(keep="first")
+        print(f"   despesas: {len(bruto)} linhas; {int(ident.sum())} idênticas a outra em todas as colunas "
+              f"(R$ {d.loc[ident.values, 'valor'].sum():,.0f} contados a mais)", file=sys.stderr, flush=True)
+        if "SQ_DESPESA" in bruto:
+            chave = ["SQ_PRESTADOR_CONTAS", "SQ_DESPESA"] if "SQ_PRESTADOR_CONTAS" in bruto else ["SQ_DESPESA"]
+            rep = bruto.duplicated(chave, keep=False) & ~bruto.duplicated(keep=False)
+            difere = [c for c in bruto.columns if bruto.loc[rep].groupby(bruto.loc[rep, chave].apply(tuple, axis=1))[c].nunique().gt(1).any()] if rep.any() else []
+            print(f"   despesas: {int(rep.sum())} linhas repetem {chave} com conteúdo diferente; colunas que variam: {difere[:12]}",
+                  file=sys.stderr, flush=True)
+        if ident.any():
+            d = d.loc[~ident.values].copy()
         partes.append(d.groupby(["CD_CARGO", "NR_CANDIDATO"])["valor"].sum().rename("despesas"))
         # honorários de advogado e contador: gasto eleitoral, mas fora do limite de gastos (Lei 9.504, art. 26, § 4º)
         if "DS_ORIGEM_DESPESA" in d:
