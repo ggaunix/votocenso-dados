@@ -282,7 +282,7 @@ def main(argv=None):
                 r = por.get((c["cargo"], c["nr"]))
                 if r:
                     c["contas"] = {"desp": round(float(r.get("despesas", 0)), 2), "rec": round(float(r.get("receitas", 0)), 2),
-                                   "pub": round(float(r.get("publico", 0)), 2)}
+                                   "pub": round(float(r.get("publico", 0)), 2), "hon": round(float(r.get("honorarios", 0)), 2)}
                     n_com += 1
             # cargo com contas na tela que teve 2º turno (ex.: governador 3 com 103) só fecha no prazo do 2º turno
             com_2t = any(c - 100 in cargos and c - 100 not in SEM_CONTAS for c in cargos if c > 100)

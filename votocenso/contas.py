@@ -45,8 +45,30 @@ def carregar(ano: int, uf: str):
         return None, "arquivos de prestação de contas não encontrados"
     partes, datas = [], []
     if f_desp:
-        d = _ler(f_desp, ["CD_CARGO", "NR_CANDIDATO", "DT_GERACAO", "DT_DESPESA"])
+        d = _ler(f_desp, ["CD_CARGO", "NR_CANDIDATO", "DT_GERACAO", "DT_DESPESA", "SQ_DESPESA", "SQ_PRESTADOR_CONTAS",
+                          "DS_ORIGEM_DESPESA", "DS_DESPESA", "NR_DOCUMENTO", "SQ_CANDIDATO"])
+        cab = pd.read_csv(f_desp, sep=";", encoding="latin-1", nrows=0).columns.tolist()
+        print(f"   despesas: colunas do arquivo {cab}", file=sys.stderr, flush=True)
+        # duplicatas: a mesma despesa (SQ_DESPESA) contada mais de uma vez
+        if "SQ_DESPESA" in d:
+            dup = d.duplicated(["SQ_DESPESA"], keep=False) & (d["SQ_DESPESA"] != "")
+            print(f"   despesas: {len(d)} linhas, {int(dup.sum())} com SQ_DESPESA repetido "
+                  f"(R$ {d.loc[dup, 'valor'].sum():,.0f})", file=sys.stderr, flush=True)
         partes.append(d.groupby(["CD_CARGO", "NR_CANDIDATO"])["valor"].sum().rename("despesas"))
+        # honorários de advogado e contador: gasto eleitoral, mas fora do limite de gastos (Lei 9.504, art. 26, § 4º)
+        if "DS_ORIGEM_DESPESA" in d:
+            origem = d["DS_ORIGEM_DESPESA"].map(normalizar)
+            print(f"   origens de despesa: {origem.value_counts().head(12).to_dict()}", file=sys.stderr, flush=True)
+            hon = origem.str.contains("ADVOCAT|CONTAB|JURIDIC", regex=True)
+            print(f"   honorários (advocacia/contabilidade): R$ {d.loc[hon, 'valor'].sum():,.0f} em {int(hon.sum())} linhas; "
+                  f"origens: {origem[hon].value_counts().head(6).to_dict()}", file=sys.stderr, flush=True)
+            partes.append(d[hon].groupby(["CD_CARGO", "NR_CANDIDATO"])["valor"].sum().rename("honorarios"))
+            # diagnóstico dos maiores gastos: composição por origem
+            tot = d.groupby(["CD_CARGO", "NR_CANDIDATO"])["valor"].sum().sort_values(ascending=False)
+            for (cg, nr) in list(tot.index[:3]) + [k for k in tot.index if k[0] == 6][:3]:
+                m = (d["CD_CARGO"] == cg) & (d["NR_CANDIDATO"] == nr)
+                comp = d[m].groupby(origem[m])["valor"].sum().sort_values(ascending=False).head(6).round(0).to_dict()
+                print(f"      {cg}/{nr}: total R$ {tot[(cg, nr)]:,.0f}; {comp}", file=sys.stderr, flush=True)
         datas += [x for x in d.get("DT_GERACAO", pd.Series(dtype=str)).unique()[:1]]
     if f_rec:
         r = _ler(f_rec, ["CD_CARGO", "NR_CANDIDATO", "DS_FONTE_RECEITA", "DT_GERACAO", "DT_RECEITA"])
